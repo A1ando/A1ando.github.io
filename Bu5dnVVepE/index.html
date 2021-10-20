@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>python小程序 | 艾南岛</title>
+<meta name="description" content="分享|记录|学习">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://a1ando.github.io/favicon.ico?v=1634737068236">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://a1ando.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://a1ando.github.io">
+        <img class="avatar" src="https://a1ando.github.io/images/avatar.png?v=1634737068236" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://a1ando.github.io">
+        <h1 class="site-title">艾南岛</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+
+        <div class="current-tag-container">
+          <h2 class="title">
+            <i class="icon icon-pricetags-outline"></i> python小程序
+          </h2> 
+        </div>
+
+        
+<section class="post-item">
+    <div class="content">
+      <a href="https://a1ando.github.io/RhyDzT7ra/">
+        <h2 class="post-title">Python小程序（2）身份证号码校验并提取信息</h2>
+      </a>
+      <div class="post-abstract">
+        <p>身份证号码主要包括以下知识点：</p>
+<ul>
+<li>
+<p><strong>地区码</strong>：按照GB/T2260执行，通常1开头为华北地区、2开头为东北地区、3开头为华东地区、4开头为华中地区和华南地区、5开头为西南地区、6开头为西北地区、7和8开头为特别地区。</p>
+</li>
+<li>
+<p><strong>出生日期码</strong>：按GB/T7408执行</p>
+</li>
+<li>
+<p><strong>顺序码</strong>：表示同一地址码所标识的区域范围内，对同年同月出生的人编订的顺序号，奇数分为男性、偶数分给女性</p>
+</li>
+<li>
+<p><strong>校验码</strong>：按照ISO 7064:1983.MOD11-2计算出来的校验码得到第18位数字</p>
+<p>校验方法：详见<code>validate(ID)</code>函数</p>
+</li>
+</ul>
+
+      </div>
+      <div class="post-info">
+        <span><i class="icon icon-calendar-outline"></i> 2020-11-26</span>
+        
+          <span>
+            <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="https://a1ando.github.io/Vc8cH6kQE/">
+                python
+                
+                  ，
+                
+              </a>
+            
+              <a href="https://a1ando.github.io/Bu5dnVVepE/">
+                python小程序
+                
+                  ，
+                
+              </a>
+            
+              <a href="https://a1ando.github.io/_WxLRaZ-0M/">
+                原创
+                
+              </a>
+            
+          </span>
+        
+      </div>
+    </div>
+    
+      <a href="https://a1ando.github.io/RhyDzT7ra/">
+        <div class="feature-container" style="background-image: url('https://i.loli.net/2020/11/26/srKRhptqaPMXw4I.png')">
+        </div>
+      </a>
+    
+  </section>
+
+<section class="post-item">
+    <div class="content">
+      <a href="https://a1ando.github.io/JlgVPpNyM/">
+        <h2 class="post-title">Python小程序（1）批量按下载顺序重命名文件</h2>
+      </a>
+      <div class="post-abstract">
+        <p>当我们采集到一组图片的下载链接，使用<strong>IDM</strong>按照顺序批量下载图片后，下载后的文件名称一般是链接最后的文件名，想要将它按照下载顺序进行编号，方法是建立字典<code>dict = {'文件名': '序号'}</code>，然后利用<code>os.renames()</code>进行重命名即可。</p>
+
+      </div>
+      <div class="post-info">
+        <span><i class="icon icon-calendar-outline"></i> 2020-11-15</span>
+        
+          <span>
+            <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="https://a1ando.github.io/Vc8cH6kQE/">
+                python
+                
+                  ，
+                
+              </a>
+            
+              <a href="https://a1ando.github.io/Bu5dnVVepE/">
+                python小程序
+                
+                  ，
+                
+              </a>
+            
+              <a href="https://a1ando.github.io/_WxLRaZ-0M/">
+                原创
+                
+              </a>
+            
+          </span>
+        
+      </div>
+    </div>
+    
+      <a href="https://a1ando.github.io/JlgVPpNyM/">
+        <div class="feature-container" style="background-image: url('https://a1ando.github.io/post-images/JlgVPpNyM.jpg')">
+        </div>
+      </a>
+    
+  </section>
+
+
+<div class="pagination-container">
+  
+  
+</div>
+
+
+      </div>
+
+      <div class="site-footer">
+  <div class="slogan">分享|记录|学习</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://a1ando.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

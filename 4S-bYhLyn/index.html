@@ -1,0 +1,530 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>【药剂学】溶出曲线作图 | 艾南岛</title>
+<meta name="description" content="分享|记录|学习">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://a1ando.github.io/favicon.ico?v=1634737068236">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://a1ando.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://a1ando.github.io">
+        <img class="avatar" src="https://a1ando.github.io/images/avatar.png?v=1634737068236" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://a1ando.github.io">
+        <h1 class="site-title">艾南岛</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://octodev.net/wp-content/uploads/2017/05/jstips-animation.gif')">
+            </div>
+          
+          <h2 class="post-title">【药剂学】溶出曲线作图</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2020-07-20</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://a1ando.github.io/Vc8cH6kQE/">
+                    python
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://a1ando.github.io/_WxLRaZ-0M/">
+                    原创
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://a1ando.github.io/FxACnRPFLQ/">
+                    matplotlib
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://a1ando.github.io/vT47Us_2gQ/">
+                    药剂学
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p>自用，方便快速制作溶出曲线，适用速释制剂。</p>
+<!-- more -->
+<h3 id="version-10">Version 1.0</h3>
+<pre><code class="language-python"># -*- coding: utf-8 -*-
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
+
+fig_title = '*************'#自定义图的标题
+line_width = 1.5#自定义折线宽度
+colors = ['blue', 'red', 'green']#选择折线颜色
+labels = ['0.1mol/L盐酸溶液', 'pH4.5醋酸盐缓冲液', 'pH6.8磷酸盐缓冲液']#折线的标签，与图例对应
+markers = ['o', '^', 's']#区分折线
+plt.figure(figsize=(8, 5), dpi=120)#改变图像的长宽和dpi
+plt.title(fig_title, size=16)#size可调，下同
+plt.xlabel('时间(min)', size=14)
+plt.ylabel('累积溶出百分率(%)', size=14)
+
+#x轴
+x = [0, 5, 10, 15, 20, 30, 60]
+#0.1mol/L盐酸溶液的溶出数据
+y1 = [0, 49, 87, 92, 94, 95, 96]
+#pH4.5醋酸盐缓冲液的溶出数据
+y2 = [0, 55, 84, 91, 94, 95, 96]
+#pH6.8磷酸盐缓冲液的溶出数据
+y3 = [0, 42, 79, 88, 91, 93, 95]
+y = [y1, y2, y3]
+
+#给5min和10min的点标记溶出量
+def note(x, y):
+    txt = [str(each) for each in y]
+    for i in range(len(x)):
+        if i == 1 or i == 2:
+            plt.annotate(txt[i], xy=(x[i], y[i]), xytext=(x[i] + 2, y[i] - 3.2 * i))
+        else:
+            pass
+
+#可选，在y=85的位置画出一条点线
+#plt.plot(x, [85] * 7, linewidth=1.0, linestyle='-.', color='orange')
+for i in range(len(y)):
+    plt.plot(x, y[i], color=colors[i], linewidth=line_width, label=labels[i])
+    plt.scatter(x, y[i], color=colors[i], linewidth=line_width, marker=markers[i])
+    note(x, y[i])
+#y轴刻度，增加85，方便观察15min时的溶出量是否超过85%
+plt.yticks([0, 20, 40, 60, 80, 85, 100])
+#plt.xticks(x)
+
+#网格透明度为0.5，可调范围0~1
+plt.grid(alpha=0.5, linestyle='--')
+
+#显示图例
+plt.legend()
+
+#展示作图，方便再次调整保存
+plt.show()
+</code></pre>
+<h3 id="version-20">Version 2.0</h3>
+<pre><code class="language-python">#-*- coding:utf-8 -*-
+'''
+======================================================
+2020-07-21
+1、将汇总图拆分成四个子图，前三个分别与参比进行对比，最后一个汇总
+2、标记子图数据
+======================================================
+后续计划
+1、在子图空白处内嵌表格
+2、模块化重新整理代码
+======================================================
+'''
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
+
+batch_NO = '***'#设置批号
+x = [0, 5, 10, 15, 20, 30, 60]
+#参比数据，此处随机
+y_refer = [[0, 30, 70, 90, 96, 18, 100],
+           [0, 30, 70, 90, 96, 98, 100],
+           [0, 30, 70, 90, 96, 98, 100]]
+# 0.1mol/L盐酸溶液的溶出数据
+y1 = [0, 49, 87, 92, 94, 95, 96]
+# pH4.5醋酸盐缓冲液的溶出数据
+y2 = [0, 55, 84, 91, 94, 95, 96]
+#pH6.8磷酸盐缓冲液的溶出数据
+y3 = [0, 42, 79, 88, 91, 93, 95]
+y = [y1, y2, y3]
+colors = ['g', 'r', 'b']
+labels = ['0.1mol/L盐酸溶液', 'pH4.5醋酸盐缓冲液', 'pH6.8磷酸盐缓冲液', batch_NO + '批溶出汇总']
+types = ['go-', 'r^-', 'bs-', 'c*-']
+
+def init_plot(ax):
+    ax.set_xlabel('时间(min)', fontsize=12)
+    ax.set_ylabel('累计溶出百分率(%)', fontsize=12)
+    ax.grid(alpha=0.5, linestyle='--')
+    ax.axis([0, 62, 0, 105])
+
+def custome_fig():
+    fig.suptitle(batch_NO + '批溶出曲线汇总（n=？)', fontsize=20)
+
+def note(axss, x, y):
+    txt = [str(each) for each in y]
+    for i in range(1, len(x)):
+        axss.annotate(txt[i], xy=(x[i], y[i]), xytext=(x[i] - 3.5, y[i] - 10), \
+                      arrowprops =dict(arrowstyle='-&gt;'))
+
+def note_refer(axss, x, y):
+    txt = [str(each) for each in y]
+    for i in range(1, len(x)):
+        axss.annotate(txt[i], xy=(x[i], y[i]), xytext=(x[i] + 0.1, y[i] + 0.1))
+
+fig, axs = plt.subplots(2, 2,  constrained_layout=True)
+custome_fig()
+axss= axs.flatten()
+
+for ax in axss:
+    init_plot(ax)
+    
+for i in range(3):
+    axss[i].plot(x, y[i], types[i], label=labels[i])
+    axss[i].plot(x, y_refer[i], types[3], label='参比')
+    axss[i].legend(loc='lower right')
+    note(axss[i], x, y[i])
+    note_refer(axss[i], x, y_refer[i])
+    
+for j in range(len(y)):
+    axss[3].plot(x, y[j], types[j], label=labels[j])
+axss[3].legend(loc='lower right')
+
+
+plt.show()
+</code></pre>
+<h3 id="version-30">Version 3.0</h3>
+<pre><code class="language-python">#-*- coding:utf-8 -*-
+import matplotlib.pyplot as plt
+'''
+======================================================
+2020-07-21
+1、将汇总图拆分成四个子图，前三个分别与参比进行对比，最后一个汇总
+2、标记子图数据
+======================================================
+2020-07-22
+1、在子图空白处内嵌表格，标记可省略
+2、子图4显示数据集中的位置
+3、优化图例大小，画布大小
+======================================================
+后续计划
+1、模块化重新整理代码，原始数据结构优化
+2、将原始数据归档保存至csv文件或者数据库，方便调用
+2、图形界面，更方便数据输入
+======================================================
+'''
+
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
+
+batch_NO = '******'
+x = [0, 5, 10, 15, 20, 30, 60]
+y_refer = [[0, 44, 84, 96, 99, 101, 101],
+           [0, 35, 75, 90, 96, 99, 102],
+           [0, 31, 71, 86, 93, 97, 99]]
+# 0.1mol/L盐酸溶液的溶出数据
+y1 = [0, 49, 87, 92, 94, 95, 96]
+# pH4.5醋酸盐缓冲液的溶出数据
+y2 = [0, 55, 84, 91, 94, 95, 96]
+# pH6.8磷酸盐缓冲液的溶出数据
+y3 = [0, 42, 79, 88, 91, 93, 95]
+y = [y1, y2, y3]
+colors = ['g', 'r', 'b']
+labels = ['0.1mol/L盐酸溶液', 'pH4.5醋酸盐缓冲液', 'pH6.8磷酸盐缓冲液', batch_NO + '批溶出汇总']
+types = ['go-', 'r^-', 'bs-', 'c*-']
+
+
+table_y_vals =[[49, 87, 92, 94, 95, 96],
+               [55, 84, 91, 94, 95, 96],
+               [42, 79, 88, 91, 93, 95]]
+table_refer_vals = [[44, 84, 96, 99, 101, 101],
+                    [35, 75, 90, 96, 99, 102],
+                    [31, 71, 86, 93, 97, 99]]
+
+
+def init_plot(ax):
+    ax.set_xlabel('时间(min)', fontsize=12)
+    ax.set_ylabel('累积溶出百分率(%)', fontsize=12)
+    ax.grid(alpha=0.5, linestyle='--')
+    ax.axis([0, 62, 0, 105])
+
+def custome_fig():
+    fig.suptitle(batch_NO + '批包衣片溶出曲线汇总（n=6)', fontsize=20)
+
+def note(axss, x, y):
+    txt = [str(each) for each in y]
+    for i in range(1, len(x)):
+        axss.annotate(txt[i], xy=(x[i], y[i]), xytext=(x[i] - 3.5, y[i] - 10), arrowprops =dict(arrowstyle='-&gt;'))
+
+def note_refer(axss, x, y):
+    txt = [str(each) for each in y]
+    for i in range(1, len(x)):
+        axss.annotate(txt[i], xy=(x[i], y[i]), xytext=(x[i] + 0.1, y[i] + 0.1))
+
+fig, axs = plt.subplots(2, 2,  constrained_layout=True, figsize=(9, 6), dpi=120)
+custome_fig()
+axss = axs.flatten()
+
+for ax in axss:
+    init_plot(ax)
+for i in range(3):
+    axss[i].plot(x, y[i], types[i], label=labels[i])
+    axss[i].plot(x, y_refer[i], types[3], label='参比')
+    axss[i].legend(loc='lower right')#, fontsize='x-large')
+    #legend.get_title().set_fontsize(fontsize=30)
+    the_table = axss[i].table(cellText=[table_y_vals[i], table_refer_vals[i]],
+                              colWidths=[0.09]*6,
+                              rowLabels=[batch_NO, '参比'],
+                              colLabels=['5min', '10min', '15min', \
+                                         '20min', '30min', '60min'],
+                              colLoc='center',
+                              rowLoc='center',
+                              rowColours=['#999999', 'c'],
+                              cellLoc='center',
+                              loc='center right')
+    the_table.auto_set_font_size(False)
+    the_table.set_fontsize(11)
+    the_table.scale(1.1, 1.1)
+    #note(axss[i], x, y[i])
+    #note_refer(axss[i], x, y_refer[i])
+
+axss[3].axis([0, 35, 25, 100])
+for j in range(len(y)):
+    axss[3].plot(x, y[j], types[j], label=labels[j])
+#axss[3].set_title(labels[3])
+axss[3].legend(loc='lower right')#, fontsize='x-large')
+
+
+plt.show()
+</code></pre>
+<h3 id="version-31">Version 3.1</h3>
+<pre><code class="language-python"># -*- coding:utf-8 -*-
+import matplotlib.pyplot as plt
+import copy
+'''
+======================================================
+2020-07-21
+1、将汇总图拆分成四个子图，前三个分别与参比进行对比，最后一个汇总
+2、标记子图数据
+======================================================
+2020-07-22
+1、在子图空白处内嵌表格，标记可省略
+2、子图4显示数据集中的位置
+3、优化图例大小，画布大小
+======================================================
+2020-07-24
+1、原始数据结构优化
+======================================================
+后续计划
+1、将原始数据归档保存至csv文件或者数据库，方便调用
+2、图形界面，更方便数据输入
+======================================================
+'''
+
+def add_zero(a_list):
+    for i in a_list:
+        if isinstance(i, list):
+            i.insert(0, 0)
+        else:
+            print(a_list, '错误')
+    return a_list
+
+
+def init_plot(ax):
+    ax.set_xlabel('时间(min)', fontsize=12)
+    ax.set_ylabel('累积溶出百分率(%)', fontsize=12)
+    ax.grid(alpha=0.5, linestyle='--')
+    ax.axis([0, 62, 0, 105])
+
+
+def custom_fig():
+    fig.suptitle(batch_NO + '批包衣片溶出曲线汇总（n=6)', fontsize=20)
+
+
+def note(axes, x_axis, y_axis):
+    txt = [str(each) for each in y_axis]
+    for i in range(1, len(x)):
+        axes.annotate(txt[i], xy=(x_axis[i], y_axis[i]),
+                      xytext=(x_axis[i] - 3.5, y_axis[i] - 10),
+                      arrowprops=dict(arrowstyle='-&gt;'))
+
+
+def note_refer(axes, x_axis, y_axis):
+    txt = [str(each) for each in y_axis]
+    for i in range(1, len(x)):
+        axes.annotate(txt[i], xy=(x_axis[i], y_axis[i]),
+                      xytext=(x_axis[i] + 0.1, y_axis[i] + 0.1))
+
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
+
+batch_NO = '20200714-1'
+# batch_NO溶出数据，[0]为'0.1mol/L盐酸溶液'，[1]为'pH4.5醋酸盐缓冲液'，[2]为'pH6.8磷酸盐缓冲液'
+table_y_vals = [[49, 87, 92, 94, 95, 96],
+                [55, 84, 91, 94, 95, 96],
+                [42, 79, 88, 91, 93, 95]]
+# 参比溶出数据，[0]为'0.1mol/L盐酸溶液'，[1]为'pH4.5醋酸盐缓冲液'，[2]为'pH6.8磷酸盐缓冲液'
+table_refer_vals = [[44, 84, 96, 99, 101, 101],
+                    [35, 75, 90, 96, 99, 102],
+                    [31, 71, 86, 93, 97, 99]]
+
+# 数据处理与参数设定
+x = [0, 5, 10, 15, 20, 30, 60]
+y_refer = add_zero(copy.deepcopy(table_refer_vals))
+y1, y2, y3 = y = add_zero(copy.deepcopy(table_y_vals))
+colors = ['g', 'r', 'b']
+labels = ['0.1mol/L盐酸溶液', 'pH4.5醋酸盐缓冲液', 'pH6.8磷酸盐缓冲液', batch_NO + '批溶出汇总']
+types = ['go-', 'r^-', 'bs-', 'c*-']
+
+# 开始绘图
+fig, axs = plt.subplots(2, 2, constrained_layout=True, figsize=(9, 6), dpi=120)
+custom_fig()
+axss = axs.flatten()
+
+for ax in axss:
+    init_plot(ax)
+for i in range(3):
+    axss[i].plot(x, y[i], types[i], label=labels[i])
+    axss[i].plot(x, y_refer[i], types[3], label='参比')
+    axss[i].legend(loc='lower right')  # , fontsize='x-large')
+    # legend.get_title().set_fontsize(fontsize=30)
+    the_table = axss[i].table(cellText=[table_y_vals[i], table_refer_vals[i]],
+                              colWidths=[0.09] * 6,
+                              rowLabels=[batch_NO, '参比'],
+                              colLabels=['5min', '10min', '15min', '20min', '30min', '60min'],
+                              colLoc='center',
+                              rowLoc='center',
+                              rowColours=['#999999', 'c'],
+                              cellLoc='center',
+                              loc='center right')
+    the_table.auto_set_font_size(False)
+    the_table.set_fontsize(9)
+    the_table.scale(1.1, 1.1)
+    # note(axss[i], x, y[i])
+    # note_refer(axss[i], x, y_refer[i])
+
+axss[3].axis([0, 32, 35, 100])
+for j in range(len(y)):
+    axss[3].plot(x, y[j], types[j], label=labels[j])
+# axss[3].set_title(labels[3])
+axss[3].legend(loc='lower right')  # , fontsize='x-large'
+
+plt.show()
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://a1ando.github.io/XcnRl2jy4/">
+              <h3 class="post-title">
+                下一篇：辅料的关键质量属性研究与控制
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">分享|记录|学习</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://a1ando.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

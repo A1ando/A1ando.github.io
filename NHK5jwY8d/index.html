@@ -1,0 +1,425 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>python 杂记 | 艾南岛</title>
+<meta name="description" content="分享|记录|学习">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://a1ando.github.io/favicon.ico?v=1634737068236">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://a1ando.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://a1ando.github.io">
+        <img class="avatar" src="https://a1ando.github.io/images/avatar.png?v=1634737068236" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://a1ando.github.io">
+        <h1 class="site-title">艾南岛</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://a1ando.github.io/post-images/NHK5jwY8d.png')">
+            </div>
+          
+          <h2 class="post-title">python 杂记</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2020-12-20</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://a1ando.github.io/Vc8cH6kQE/">
+                    python
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://a1ando.github.io/48qpTeYzZf/">
+                    python基础
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p>学习python过程中的杂记，觉得有用的就积累，不定时的补充，温故知新！</p>
+<!-- more -->
+<p>函数列表</p>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>函数</th>
+<th>作用/详见</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>itertools</td>
+<td>dropwhile</td>
+<td>2.2.1</td>
+</tr>
+<tr>
+<td></td>
+<td>islice</td>
+<td>2.2.2</td>
+</tr>
+<tr>
+<td></td>
+<td>permutations（iterable， num）</td>
+<td>返回iterable中num个元素的所有排列组合</td>
+</tr>
+<tr>
+<td></td>
+<td>combinations</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>combinations_with_replacement</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>zip_longest</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>chain</td>
+<td>将不同迭代对象链接起来</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-列表中查找最值">1. 列表中查找最值</h2>
+<p>时间：2020.05.22</p>
+<img src="https://i.loli.net/2020/12/20/nsoV9X8hUqrNJGm.png" alt="list(item)中查找N个最值"  />
+<h2 id="2-cookbook第一章">2. Cookbook第一章</h2>
+<h3 id="21-第一章">2.1 第一章</h3>
+<p>时间2020.05.23</p>
+<p>对Python Cookbook第一章进行小结</p>
+<figure data-type="image" tabindex="1"><img src="https://i.loli.net/2020/12/20/3DENfA6cILWMC7S.png" alt="第一章 数据结构和算法" loading="lazy"></figure>
+<h3 id="22-迭代器">2.2 迭代器</h3>
+<h4 id="221-跳过一个可迭代对象中的前一部分元素itertoolsdropwhile">2.2.1  跳过一个可迭代对象中的前一部分元素<code>itertools.dropwhile</code></h4>
+<p>这是一个测试文件some sentences.txt</p>
+<pre><code class="language-txt"># fsdfsdfsdfsdf
+#dfdfsdf
+# fdfefesfefe
+date: 2020
+time: 12.25
+count: 3
+## dfsdfds
+# dfdsfsdf
+</code></pre>
+<p>读取开头不以#开头的元素，后续再以#开头仍旧会被读取！</p>
+<pre><code class="language-python">from itertools import dropwhile
+with open('some sentences.txt', 'r', encoding='utf8') as f:
+    for line in dropwhile(lambda x: x.startswith('#'), f):
+        print(line.strip())
+</code></pre>
+<p>运行结果</p>
+<pre><code class="language-txt">date: 2020
+time: 12.25
+count: 3
+## dfsdfds
+# dfdsfsdf
+</code></pre>
+<p>若需要对所有以#开头的元素进行过滤，代码如下：</p>
+<pre><code class="language-python">with open('some sentences.txt', 'r', encoding='utf8') as f:
+    lines = (line for line in f if not line.startswith('#'))
+    for line in lines:
+        print(line, end='')
+</code></pre>
+<h4 id="222-跳过前几个元素itertoolsislice">2.2.2 跳过前几个元素<code>itertools.islice</code></h4>
+<pre><code class="language-python">items = ['a', 'b', 'c', 1, 4, 1.2, 10]
+for x in islice(items, 3, 5):
+    print(x)
+</code></pre>
+<p>运行结果</p>
+<pre><code class="language-txt">1
+4
+</code></pre>
+<h4 id="223-itertoolszip_longest">2.2.3 <code>itertools.zip_longest</code></h4>
+<pre><code class="language-python">from itertools import zip_longest
+a = [1, 2, 3]
+b = list('xyzv')
+for i in zip_longest(a, b, fillvalue=0):
+    print(i)
+</code></pre>
+<p>运行结果</p>
+<pre><code class="language-python">(1, 'x')
+(2, 'y')
+(3, 'z')
+(0, 'v')
+</code></pre>
+<h4 id="224-扁平化序列">2.2.4 扁平化序列</h4>
+<pre><code class="language-python">from collections.abc import Iterable
+
+
+def flatten(items, ignore_types=(str, bytes)):
+    for x in items:
+        if isinstance(x, Iterable) and not isinstance(x, ignore_types):
+            yield from flatten(x)
+        else:
+            yield x
+
+items = [[1, 2, 3, 5], 'a', [2, 5, [2, 6, ['bbv']]]]
+for x in flatten(items):
+    print(x, end=' ')
+</code></pre>
+<p>运行结果为</p>
+<pre><code class="language-python">1 2 3 5 a 2 5 2 6 bbv 
+</code></pre>
+<h2 id="3-html模式查看pydoc文件">3. HTML模式查看pydoc文件</h2>
+<p>时间2020.05.23</p>
+<p>本地动态生成</p>
+<ol>
+<li>在CMD命令行窗口中输入：<code>python -m pydoc -p 1234</code></li>
+<li>接着输入<code>b</code>启动浏览；输入<code>q</code>退出</li>
+</ol>
+<p>第三方安装源</p>
+<ul>
+<li>清华源</li>
+</ul>
+<p>​	<code>pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pyqt5</code></p>
+<h2 id="4-__init__和__new__">4. <code>__init__</code>和<code>__new__</code></h2>
+<p>时间2020.08.01</p>
+<p><code>__init__</code>和<code>__new__</code>详解https://www.bilibili.com/video/BV1vA411b7Rn?p=58</p>
+<p><code>__str__</code>方法</p>
+<figure data-type="image" tabindex="2"><img src="https://i.loli.net/2020/12/20/nDia79A5z2jZxbe.jpg" alt="Snipaste_2020-08-01_18-48-59" loading="lazy"></figure>
+<p><code>__del__</code>方法</p>
+<p>面向对象的编程：封装、继承和多态</p>
+<h2 id="5-repr和str">5. <code>repr()</code>和<code>str()</code></h2>
+<p>时间2020.11.01</p>
+<p><code>repr()</code>和<code>str()</code>的区别https://blog.csdn.net/kongsuhongbaby/article/details/87398394</p>
+<h2 id="6-浅拷贝和深拷贝">6. 浅拷贝和深拷贝</h2>
+<p>时间2020.11.23</p>
+<pre><code class="language-Python">row = ['_'] * 3
+print(row)
+board = []
+for i in range(3):
+    board.append(row)    # 浅拷贝，说明每次加入的row都是对row的再次引用
+print(board)
+board[1][2] = 'X'
+print(board)
+
+#output:
+['_', '_', '_']
+[['_', '_', '_'], ['_', '_', '_'], ['_', '_', '_']]
+[['_', '_', 'X'], ['_', '_', 'X'], ['_', '_', 'X']]
+</code></pre>
+<pre><code class="language-Python">board = []
+for i in range(3):
+    row = ['_'] * 3
+    board.append(row)    # 深拷贝，每次进入循环都会重新建立一个新的row
+print(board)
+board[1][2] = 'X'
+print(board)
+
+#output:
+[['_', '_', '_'], ['_', '_', '_'], ['_', '_', '_']]
+[['_', '_', '_'], ['_', '_', 'X'], ['_', '_', '_']]
+</code></pre>
+<h2 id="7-python-tutor">7. <a href="http://www.pythontutor.com/">Python Tutor</a></h2>
+<p>方便查看python程序具体怎么运行的！</p>
+<figure data-type="image" tabindex="3"><img src="https://i.loli.net/2020/12/20/vX6MG5q2kDihpan.jpg" alt="Snipaste_2020-11-23_20-30-45" loading="lazy"></figure>
+<h2 id="8-字典">8. 字典</h2>
+<p>时间2020.12.02</p>
+<figure data-type="image" tabindex="4"><img src="https://i.loli.net/2020/12/21/FRlcOYpEWrKL7kQ.jpg" alt="Snipaste_2020-12-02_21-59-46" loading="lazy"></figure>
+<h2 id="9-python中关键字global与nonlocal的区别">9. <a href="https://blog.csdn.net/xcyansun/article/details/79672634">Python中关键字global与nonlocal的区别</a></h2>
+<p>时间2020-12-04</p>
+<p>第一，两者的功能不同。global关键字修饰变量后标识该变量是全局变量，对该变量进行修改就是修改全局变量，而nonlocal关键字修饰变量后标识该变量是上一级函数中的局部变量，如果上一级函数中不存在该局部变量，nonlocal位置会发生错误（最上层的函数使用nonlocal修饰变量必定会报错）</p>
+<p>第二，两者使用的范围不同。global关键字可以用在任何地方，包括最上层函数中和嵌套函数中，即使之前未定义该变量，global修饰后也可以直接使用，而nonlocal关键字只能用于嵌套函数中，并且外层函数中定义了相应的局部变量，否则会发生错误（见第一）</p>
+<h2 id="10-进程-线程和协程">10. 进程、线程和协程</h2>
+<p>时间2020-12-20</p>
+<h3 id="101-进程和线程">10.1 进程和线程</h3>
+<p>讲解最清晰的线程和进程视频：https://www.bilibili.com/video/BV1fz4y1D7tU?p=16</p>
+<p>协程：https://www.bilibili.com/video/BV1Ke411W71L?p=3</p>
+<h3 id="102-协程">10.2 协程</h3>
+<p>笔记连接：https://pythonav.com/wiki/detail/6/91/</p>
+<p>协程函数，定义函数时候<code>async def 函数名</code></p>
+<p>协程对象，执行 协程函数（）得到的协程对象</p>
+<pre><code class="language-python">async def func():
+    pass
+
+result = func()
+</code></pre>
+<p>注意：执行协程函数创建协程对象，函数内部代码不会执行。</p>
+<pre><code class="language-python">import asyncio
+
+
+async def others():
+    print('start')
+    await asyncio.sleep(2)
+    print('end')
+    return 'fanhuizhi'
+
+async def func():
+    print('执行协程函数内部代码')
+
+    # 遇到I/O操作挂起当前协程，等I/O操作完成之后再继续往下执行。当前协程挂起时，事件循环可以去执行其它协程
+    responce1 = await others()
+    print('I/O请求结束，结果为：', responce1)
+
+    responce2 = await others()
+    print('I/O请求结束，结果为：', responce2)
+
+asyncio.run(func())
+</code></pre>
+<p>执行结果为：</p>
+<pre><code class="language-reStructuredText">执行协程函数内部代码
+start
+end
+I/O请求结束，结果为： fanhuizhi
+start
+end
+I/O请求结束，结果为： fanhuizhi
+</code></pre>
+<p>await就是等待对象的值得到结果之后再继续往下走。</p>
+<h4 id="1021-task对象">10.2.1 Task对象</h4>
+<p>在事件循环中添加多个任务</p>
+<pre><code class="language-python">import asyncio
+
+
+async def func():
+    print(1)
+    await asyncio.sleep(2)
+    print(2)
+    return '返回值'
+
+async def main():
+    print('main开始')
+
+    task_list = [
+        asyncio.create_task(func(), name='t1'),
+        asyncio.create_task(func(), name='t2')
+    ]
+
+    print(&quot;main结束&quot;)
+	
+    # done为集合，当timeout=None时，done为函数func()的返回值，如果timeout设置为1的话，函数肯定来不及执行完，那么未执行的结果会放在pending集合里面，此时done为set().
+    done, pending = await asyncio.wait(task_list, timeout=1)
+    print(done)
+    print(pending)
+
+asyncio.run(main())
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://a1ando.github.io/1ELoXq5zv/">
+              <h3 class="post-title">
+                下一篇：在回调函数中携带额外的状态
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">分享|记录|学习</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://a1ando.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

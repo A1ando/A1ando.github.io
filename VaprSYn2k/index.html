@@ -1,0 +1,328 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Python 字符串操作笔记 | 艾南岛</title>
+<meta name="description" content="分享|记录|学习">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://a1ando.github.io/favicon.ico?v=1634737068236">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://a1ando.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://a1ando.github.io">
+        <img class="avatar" src="https://a1ando.github.io/images/avatar.png?v=1634737068236" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://a1ando.github.io">
+        <h1 class="site-title">艾南岛</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://a1ando.github.io/post-images/VaprSYn2k.jpg')">
+            </div>
+          
+          <h2 class="post-title">Python 字符串操作笔记</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2020-11-14</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://a1ando.github.io/Vc8cH6kQE/">
+                    python
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://a1ando.github.io/48qpTeYzZf/">
+                    python基础
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p>对python3.x中字符串的操作进行积累，不定时更新</p>
+<!-- more -->
+<h2 id="1-替换">1 替换</h2>
+<p>替换常用函数为<code>str.replace()</code>，示例如下：</p>
+<pre><code class="language-python">&gt;&gt;&gt; a = 'a w e s o m e P y t h o n'
+&gt;&gt;&gt; a.replace(' ', '') # 注意这里是用空值替代了空格
+'awesomePython'
+&gt;&gt;&gt; a.replace(' ', '', 2) # 后面的参数指定替代次数，默认为-1，即全部代替
+'awe s o m e P y t h o n '
+</code></pre>
+<p>拓展——其他替代操作</p>
+<ul>
+<li><code>re.sub()</code></li>
+</ul>
+<pre><code class="language-Python">&gt;&gt;&gt; import re
+&gt;&gt;&gt; s = 'hello\tworld\t\n'
+&gt;&gt;&gt; re.sub('\s+', ' ', s)
+'hello world '
+</code></pre>
+<ul>
+<li><code>str.translate()</code></li>
+</ul>
+<pre><code class="language-python">&gt;&gt;&gt; s = 'python\fis\tawesome\r\n'
+&gt;&gt;&gt; remap = {
+    ord('\f'): ' ',
+    ord('\t'): ' ',
+    ord('\r'): None,   # ord()返回对象的ASCII值或者Unicode值
+}
+&gt;&gt;&gt; s.translate(remap)
+'python is awesome\n'
+</code></pre>
+<p>一般情况下，<code>str.replace()</code>是较快的，其它方法会比较慢，但是对于复杂的重映射，使用<code>translate()</code>方法更加易读而且快捷。当然，碰到具体的问题可以做性能对比，选择最优的函数。</p>
+<h2 id="2-对齐">2 对齐</h2>
+<h3 id="21-just-ljust-rjust">2.1 <code>just()</code>、<code>ljust()</code>、<code>rjust()</code></h3>
+<pre><code class="language-python">&gt;&gt;&gt; text = 'Hello World'
+&gt;&gt;&gt; text.ljust(20)
+'Hello World         '
+&gt;&gt;&gt; text.rjust(20)
+'         Hello World'
+&gt;&gt;&gt; text.center(20)
+'    Hello World     '
+</code></pre>
+<p>这些方法都可以接受<mark>一个</mark>可选的填充字符，两个以上报错。例如：</p>
+<pre><code class="language-python">&gt;&gt;&gt; text.rjust(20, '=')
+'=========Hello World'
+</code></pre>
+<h3 id="22-format">2.2 <code>format()</code></h3>
+<p><code>format()</code>函数也可以对齐，<code>&lt;</code> 、<code>&gt;</code>、<code>^</code>分别代表左对齐、右对齐和居中。</p>
+<pre><code class="language-python">&gt;&gt;&gt; format(text, '&gt;20')
+'         Hello World'
+&gt;&gt;&gt; format(text, '=&lt;20')
+'Hello World========='
+&gt;&gt;&gt; format(text, '*^20')
+'****Hello World*****'
+</code></pre>
+<p>而且，当格式化多个值时，这些格式化代码也可以用在<code>format()</code>方法中。</p>
+<pre><code class="language-python">&gt;&gt;&gt; '空格{:&gt;10s}空格{:&gt;10s}空格'.format('hello', 'A1ando')
+'空格     hello空格    A1ando空格'
+</code></pre>
+<p><code>format()</code>不仅可以用于字符串，它能作用于任何值</p>
+<pre><code class="language-python">&gt;&gt;&gt; X = 1.2356
+&gt;&gt;&gt; format(X, '&gt;10.2f')
+'      1.24'
+&gt;&gt;&gt; format(X, '^10.2f')
+'   1.24   '
+</code></pre>
+<h2 id="3-格式化">3 格式化</h2>
+<h3 id="31">3.1 <code>%</code></h3>
+<pre><code class="language-python">&gt;&gt;&gt; X = '%s是我的学生'
+&gt;&gt;&gt; X % '张三'
+'张三是我的学生'
+</code></pre>
+<h3 id="32-format">3.2 <code>format()</code></h3>
+<pre><code class="language-python">&gt;&gt;&gt; X = '{}是我的学生'
+&gt;&gt;&gt; X.format('张三')
+'张三是我的学生'
+&gt;&gt;&gt; s = '{name} has {n} messages'
+&gt;&gt;&gt; s.format(n=4，name='A1ando')
+'A1ando has 4 messages'
+
+&gt;&gt;&gt; s = '{} has {} messages'
+&gt;&gt;&gt; s.format('Alando', 4)
+'Alando has 4 messages'
+
+&gt;&gt;&gt; s = '{0} has {1} messages'
+&gt;&gt;&gt; s.format('Alando', 4)
+'Alando has 4 messages'        # 字符串中{x}的标记x是为了在格式化的时候方便指定内容
+</code></pre>
+<h3 id="32-f-string">3.2 <code>f-string</code></h3>
+<p>f-string用大括号 <code>{}</code> 可以填入表达式或调用函数，Python会求出其结果并填入返回的字符串内：</p>
+<pre><code class="language-python">&gt;&gt;&gt; X = '张三'
+&gt;&gt;&gt; f'{X}是我的学生'
+'张三是我的学生'
+&gt;&gt;&gt; f'A total number of {24 * 8 + 4}'
+'A total number of 196'
+
+&gt;&gt;&gt; f'complex number {(2 + 2j) / (2 - 3j)}'
+'Comelex number (结果)'
+
+&gt;&gt;&gt; name = 'ERIC'
+&gt;&gt;&gt;f'My name is {name.lower()}'
+'My name is eric'
+
+&gt;&gt;&gt; import math
+&gt;&gt;&gt; f'The answer is {math.log(math.pi)}'
+'The answer is 1.1447298858494002'
+</code></pre>
+<h3 id="34-上述三者对比">3.4 上述三者对比</h3>
+<p><code>%</code>更多适用于大段预先准备好的文本中某些地方的替代，例如下面一段文本：</p>
+<pre><code>亲爱的%s：
+	您本次预定的%s号列车即将在%s发车，请您准时抵达！
+	...
+</code></pre>
+<p>这份文本在读取到参数<code>f</code>中，那么很容易用<code>f % ('王先生'， 'G105', '2020-11-6 13：00')</code>来格式化，批量用不同的信息取代。</p>
+<p><code>format()</code>和<code>f-string</code>更加适合在代码中使用，特别是后者使得程序更易读。</p>
+<h2 id="4-拼接">4 拼接</h2>
+<p>要合并的对象在一个可迭代对象中，使用<code>join()</code>是最快的方法</p>
+<pre><code class="language-python">&gt;&gt;&gt; parts = ['Is', 'Beijing', 'Not', 'a', 'Capital']
+&gt;&gt;&gt; ' '.join(parts)
+'Is Beijing Not a Capital'
+&gt;&gt;&gt; ','.join(parts)
+'Is,Beijing,Not,a,Capital'
+&gt;&gt;&gt; ''.join(parts)
+'IsBeijingNotaCapital'
+&gt;&gt;&gt; data = ['Lee', 26, 178, 20000]
+&gt;&gt;&gt; ', '.join(str(i) for i in data)
+'Lee, 26, 178, 20000'
+</code></pre>
+<p>简单少量字符串拼接使用<code>+</code>即可</p>
+<pre><code class="language-Python">&gt;&gt;&gt; a = 'I Lova'
+&gt;&gt;&gt; b = 'China'
+&gt;&gt;&gt; c = 'Money'
+&gt;&gt;&gt; a + b
+'I Love China'
+&gt;&gt;&gt; a + c
+'I Love Money'
+</code></pre>
+<p><strong>3 格式化</strong>中的内容也可以看作是字符串的拼接。</p>
+<p><code>print()</code>语句中有参数<code>sep=</code>，使用这个参数能有效的进行打印的拼接</p>
+<pre><code class="language-Python">&gt;&gt;&gt; a = 'Lee'
+&gt;&gt;&gt; b = 'Cheel'
+&gt;&gt;&gt; c = 'wood'
+&gt;&gt;&gt; print(a, b, c, sep=':')
+Lee:Cheel:wood
+</code></pre>
+<p>有如下的问题，我要将不断收集到的片段信息保存到文本中，但是片段信息有时候是长度很小的字符串，有时候长度很大，考虑将片段积累到一定的长度后，再一次性写入，重复这一操作，最终将信息全部保存，代码如下：</p>
+<pre><code class="language-Python">def combine(src, maxsize):
+    parts = []
+    size = 0
+    for part in src:
+        parts.append(part)
+        size += len(part)
+        if size &gt; maxsize:
+            yield ''.join(parts)
+            parts = []
+            size = 0
+	yield ''.join(parts) # 当src中所有的片段累积长度仍旧小于指定的最大长度时，返回拼接后的src。
+    
+f = open(filename, 'w', encoding= 'utf8')    
+for part in combine(sample(), 32768):
+    f.write(part)
+f.close()
+</code></pre>
+<p><em><strong>To Be Continued…</strong></em></p>
+<p><strong>【外链】</strong><a href="https://blog.csdn.net/weixin_44747933/article/details/89062640">有趣的编程原理图解</a></p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://a1ando.github.io/4S-bYhLyn/">
+              <h3 class="post-title">
+                下一篇：【药剂学】溶出曲线作图
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">分享|记录|学习</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://a1ando.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

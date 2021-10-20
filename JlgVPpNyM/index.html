@@ -1,0 +1,275 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Python小程序（1）批量按下载顺序重命名文件 | 艾南岛</title>
+<meta name="description" content="分享|记录|学习">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://a1ando.github.io/favicon.ico?v=1634737068236">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://a1ando.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://a1ando.github.io">
+        <img class="avatar" src="https://a1ando.github.io/images/avatar.png?v=1634737068236" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://a1ando.github.io">
+        <h1 class="site-title">艾南岛</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://a1ando.github.io/post-images/JlgVPpNyM.jpg')">
+            </div>
+          
+          <h2 class="post-title">Python小程序（1）批量按下载顺序重命名文件</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2020-11-15</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://a1ando.github.io/Vc8cH6kQE/">
+                    python
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://a1ando.github.io/Bu5dnVVepE/">
+                    python小程序
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://a1ando.github.io/_WxLRaZ-0M/">
+                    原创
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p>当我们采集到一组图片的下载链接，使用<strong>IDM</strong>按照顺序批量下载图片后，下载后的文件名称一般是链接最后的文件名，想要将它按照下载顺序进行编号，方法是建立字典<code>dict = {'文件名': '序号'}</code>，然后利用<code>os.renames()</code>进行重命名即可。</p>
+<!--more-->
+<pre><code class="language-Python">import os
+from random import randint
+
+&quot;&quot;&quot;
+函数create_rand_num()、check()、create_files()是为了模拟生成需要的可编辑数据
+函数rename_it()改变上面生成的数据
+
+&quot;&quot;&quot;
+
+
+# 创建随机的编号长度为6位数的文件名表单
+def create_rand_num():
+    with open('randtext.txt', 'w', encoding='utf8') as f:
+        for i in range(100):
+            f.write(str(i+1) + ',' + str(randint(100000, 999999))+'.txt'+ '\n')
+    print('Create rand filenames Successfully! check it in randtext.txt!')
+
+
+# 检查是否有同名文件
+def check():
+    try:
+        with open('randtext.txt', 'r', encoding='utf8') as f:
+            g = [i.split(',')[-1] for i in f.readlines()]
+            print(f'文件中共有{len(g)}个文件')
+            if len(set(g)) == len(g):
+                print('文件中没有同名文件！')
+            else:
+                print('文件中有同名文件！')
+    except Exception as e:
+        print(e)
+
+         
+# 创建一个文件夹装单个文件
+def create_files():
+    try:
+        os.mkdir('test_files')
+        with open('randtext.txt', 'r', encoding='utf8') as f:
+            for filename in f.readlines():
+                filename = filename.strip().split(',')[-1]
+                s = open(f'./test_files/{filename}', 'w', encoding='utf8')
+                s.write(filename[:-4])
+            s.close()
+        print('文件夹及单个文件已完成创建！')
+    except Exception as e:
+        print(e)
+
+
+# 给每个文件重命名为它们的序号
+def rename_it():
+    item = {}
+    path  = os.getcwd()
+
+    with open('randtext.txt', 'r', encoding='utf8') as f:
+        filenames = f.readlines()
+        #print(type(filenames))
+        for i, filename in enumerate(filenames):
+            item[filename.strip().split(',')[-1]] = str(i+1)
+            #print(item)
+    for file in os.listdir(path + '/test_files'):
+        new_name = item[file].zfill(3) + '.txt'
+        old_path = path + '/test_files/' + file
+        new_path = path + '/test_files/' + new_name
+        os.renames(old_path, new_path)
+    
+    print('文件重命名成功！')
+        
+
+if __name__ == '__main__':
+    create_rand_num()
+    check()
+    create_files()
+    #上面三个函数运行完，先查看数据再关闭上面三个函数，打开rename_it()
+    #rename_it()
+    
+</code></pre>
+<p>涉及的知识点小结</p>
+<ul>
+<li>strip() 去除字符串两端的空格和换行符<code>\n</code>，因为readlines()是以文本中的换行符进行切片生成列表的，但是每个元素都在最后保留了换行符，所以读取的时候要将换行符去除</li>
+<li>zfill() 将数字的字符串左边填充0直到字符串满足给定的长度，如果元字符串长度超过给定的值，则不变</li>
+<li>enumerate(list) 生成有序列表，每个元素是一个元组(x, y)，x为int类型的序数， y为list中的元素</li>
+</ul>
+<p>上面的程序改写，文件结构如下，即pics、rename_it.py、text.txt为同级文件：</p>
+<pre><code>|---pics	        #装有图片的文件夹
+|---rename_it.py	#脚本程序
+|---text.txt		#下载顺序列表
+</code></pre>
+<p>简单的<code>rename_it.py</code>程序如下：</p>
+<pre><code class="language-python">import os
+
+
+base = {}
+with open('text.txt', 'r', encoding='utf8') as f:
+    for i, order in enumerate(f):
+        base[order] = str(i+1)
+
+pic_path = './pics'
+for pic in os.listdir(pic_path):
+    old_name = os.path.join(pic_path, pic)
+    #如果图片是'PNG'，下面相应的更改
+    new_name = os.path.join(pic_path, base[pic].zfill(3)+'.jpg') 
+    os.renames(old_name, new_name)
+    
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://a1ando.github.io/Pvf7F4ytU/">
+              <h3 class="post-title">
+                下一篇：正则表达式
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">分享|记录|学习</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://a1ando.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,291 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Python小程序（2）身份证号码校验并提取信息 | 艾南岛</title>
+<meta name="description" content="分享|记录|学习">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://a1ando.github.io/favicon.ico?v=1634737068236">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://a1ando.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://a1ando.github.io">
+        <img class="avatar" src="https://a1ando.github.io/images/avatar.png?v=1634737068236" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://a1ando.github.io">
+        <h1 class="site-title">艾南岛</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://i.loli.net/2020/11/26/srKRhptqaPMXw4I.png')">
+            </div>
+          
+          <h2 class="post-title">Python小程序（2）身份证号码校验并提取信息</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2020-11-26</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://a1ando.github.io/Vc8cH6kQE/">
+                    python
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://a1ando.github.io/Bu5dnVVepE/">
+                    python小程序
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://a1ando.github.io/_WxLRaZ-0M/">
+                    原创
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p>身份证号码主要包括以下知识点：</p>
+<ul>
+<li>
+<p><strong>地区码</strong>：按照GB/T2260执行，通常1开头为华北地区、2开头为东北地区、3开头为华东地区、4开头为华中地区和华南地区、5开头为西南地区、6开头为西北地区、7和8开头为特别地区。</p>
+</li>
+<li>
+<p><strong>出生日期码</strong>：按GB/T7408执行</p>
+</li>
+<li>
+<p><strong>顺序码</strong>：表示同一地址码所标识的区域范围内，对同年同月出生的人编订的顺序号，奇数分为男性、偶数分给女性</p>
+</li>
+<li>
+<p><strong>校验码</strong>：按照ISO 7064:1983.MOD11-2计算出来的校验码得到第18位数字</p>
+<p>校验方法：详见<code>validate(ID)</code>函数</p>
+</li>
+</ul>
+<!-- more -->
+<pre><code class="language-Python">import pandas as pd
+from datetime import datetime
+
+
+def validate(ID, flag=False):
+    validate_seq = list('10x98765432')
+    factor_seq = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
+
+    if len(ID) == 18:
+        try:
+            index = sum(map(lambda x, y: int(x) * y, list(ID[:17]), factor_seq)) % 11
+            if ID[-1].lower() == validate_seq[index]:
+                flag = True
+        except ValueError:
+            pass
+    return flag
+
+
+# f'升序数列为{arr}，从{left}到{right}的索引范围内查找{x}的索引')
+def bi_search(arr, x, left=0, right=None):
+    if right is None:
+        right = len(arr)
+    while left &lt;= right:
+        # 找到中间位置。求中点写成(left+right)/2更容易溢出，所以不建议这样写
+        mid = int(left + (right - left) / 2)
+
+        # 检查x是否出现在位置mid
+        if arr[mid] == x:
+            # print('found %d 在索引位置%d 处' % (x, mid))
+            return mid
+
+        # 假如x更大，则不可能出现在左半部分
+        elif arr[mid] &lt; x:
+            left = mid + 1  # 搜索区间变为[mid+1,right]
+            # print('区间缩小为[%d,%d]' % (mid + 1, right))
+
+        # 同理，假如x更小，则不可能出现在右半部分
+        else:
+            right = mid - 1  # 搜索区间变为[left,mid-1]
+            # print('区间缩小为[%d,%d]' % (left, mid - 1))
+
+    # 假如搜索到这里，表明x未出现在[left,right]中
+    raise ValueError
+
+
+def get_area(ID, flag=False):
+    birth = ID[0:6]
+    path = r'地区码(utf-8-sig).csv'
+    df = pd.read_csv(path, encoding='utf-8-sig')
+    try:
+        index = bi_search(df['areacode'], int(birth))
+        return df['nativeplace'][index]
+    except ValueError:
+        return flag
+
+
+def get_birth(ID, flag=False):
+    birth = ID[6:14]
+    date_from = datetime(year=1900, month=1, day=1)  # 1900-01-01 00:00:00
+    date_to = datetime.today()
+    birth_date = datetime(year=int(birth[:4]), month=int(birth[4:6]), day=int(birth[6:]))
+
+    if date_from &lt; birth_date &lt;= date_to:
+        age = date_to.year - birth_date.year
+        birthday = birth_date.strftime('%Y-%m-%d')
+        return {'age': age, 'birthday': birthday}
+    else:
+        return flag
+
+
+def get_gender(ID):
+    if int(ID[16]) % 2 == 0:  # 第17位是偶数为女性，奇数为男性
+        gender = '女'
+    else:
+        gender = '男'
+    return gender
+
+
+def run(lst):
+    for ID in lst:
+        ID = str(ID)
+        # 全部校验flag,任何一处有问题说明身份证号无效
+        if validate(ID) and get_birth(ID):
+            if get_area(ID):
+                yield {'身份证号': ID,
+                       '发证地': get_area(ID),
+                       '出生日期': get_birth(ID)['birthday'],
+                       '年龄': get_birth(ID)['age'],
+                       '性别': get_gender(ID)}
+            else:
+                print(f'{ID} 发证地已撤并，请更新地区码文件！')
+        else:
+            print(f'{ID} 身份证号无效！')
+
+
+if __name__ == '__main__':
+    # 从网上找一些身份证号码验证
+    ID_lst = [433101199607123521, '33900519930206581x']
+    for i in run(ID_lst):
+        print(i)
+
+</code></pre>
+<p><strong>地区码(utf-8-sig).csv</strong>链接: https://pan.baidu.com/s/1br4EX7M_1w9OHHHwZD-Uaw<br>
+提取码: pes4</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://a1ando.github.io/JlgVPpNyM/">
+              <h3 class="post-title">
+                下一篇：Python小程序（1）批量按下载顺序重命名文件
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">分享|记录|学习</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://a1ando.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,308 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>如何用Python实现图片无损压缩（未解决） | 艾南岛</title>
+<meta name="description" content="分享|记录|学习">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://a1ando.github.io/favicon.ico?v=1634737068236">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://a1ando.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://a1ando.github.io">
+        <img class="avatar" src="https://a1ando.github.io/images/avatar.png?v=1634737068236" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://a1ando.github.io">
+        <h1 class="site-title">艾南岛</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">如何用Python实现图片无损压缩（未解决）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2020-12-28</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://a1ando.github.io/Vc8cH6kQE/">
+                    python
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://a1ando.github.io/VmxeC3Q4-4/">
+                    图片压缩
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p><strong>需求</strong>：不管是web开发还是实际在撰写word时，都有无损压缩图片的需求，其中word自带的图片压缩功能大多数时候不好用。如何通过python实现图片无损压缩？本文暂未给出完美答案，重在总结学习，希望有一天能实现目标</p>
+<!-- more -->
+<p><strong>方法</strong>：首先简单了解<code>pillow</code>模块，下列是一些图片有损压缩的实现方式</p>
+<h2 id="1-简单的图片12压缩">1 <a href="https://www.cnblogs.com/codernice/p/11698228.html">简单的图片1/2压缩</a></h2>
+<p>这种方法的代码如下，只是简单的将图片宽度和高度像素除以2，实际占用空间变成原来的1/2<sup>2</sup>，即1/4。但是无法满足指定图片大小的需求。</p>
+<pre><code class="language-python">#!/user/bin/env python
+# -*- coding:utf-8 -*-
+import os
+import threading
+from PIL import Image
+
+
+# 使用这个函数就无法利用多线程，但是可以尝试改写成协程
+def compression(src_folder, dst_folder):
+    try:
+        os.mkdir(dst_folder)
+    except FileExistsError:
+        print('目标文件目录已存在！')
+
+    for pic in os.listdir(src_folder):
+        src_path = os.path.join(src_folder, pic)
+        dst_path = os.path.join(dst_folder, pic)
+        try:
+            src_img = Image.open(src_path)
+            w, h = src_img.size
+            tar_img = src_img.resize((int(w/2), int(h/2)), Image.ANTIALIAS)
+            tar_img.save(dst_path)
+        except OSError:
+            print(pic + '处理失败！')
+
+            
+# 处理单张图片，该函数更加容易复用，将循环获取文件操作交给主线程即可            
+def compression_sig(filename, src_dir, dst_dir):
+    src_path = os.path.join(src_dir, filename)
+    dst_path = os.path.join(dst_dir, filename)
+    try:
+        with Image.open(src_path) as src_img:
+            w, h = src_img.size
+            # 图片宽度和高度除以2，Image.ANTALIAS为高质量标记，抗锯齿
+            tar_img = src_img.resize((int(w / 2), int(h / 2)), Image.ANTIALIAS)
+            tar_img.save(dst_path)
+    except OSError: # 这里可能读取的src_img不是图片格式，也可能dst_path已存在，写入出错
+        print(filename + '处理失败！')
+
+
+if __name__ == '__main__':
+    src_dir = r'.\source'
+    dst_dir = r'.\target'
+    try:
+        os.mkdir(dst_dir)
+    except FileExistsError:
+        print('目标文件夹已存在！')
+	# 如果处理的图片数量过大，需控制总线程数量
+    for image in os.listdir(src_dir):
+        image_thread = threading.Thread(target=compression_sig, 
+                                        args=(image, src_dir, dst_dir))
+        image_thread.start()
+</code></pre>
+<p><mark>思考：通过限制一次性能够处理的队列中的元素个数来间接控制线程数量，这段代码应该怎么写？</mark></p>
+<h2 id="2-指定文件大小进行压缩">2 <a href="https://www.cnblogs.com/li1992/p/10675769.html">指定文件大小进行压缩</a></h2>
+<p>代码已经能满足将图片压缩到指定大小</p>
+<pre><code class="language-python">#!/user/bin/env python
+# -*- coding:utf-8 -*-
+import os
+import shutil
+from PIL import Image
+from threading import Thread
+
+
+def get_size(file):
+    # 获取文件大小:KB
+    size = os.path.getsize(file)
+    return size / 1024
+
+
+def out_filename(infile, outfile, pattern='-out'):
+    if outfile:
+        return outfile
+    dir, suffix = os.path.splitext(infile)
+    outfile = '{0}{1}{2}'.format(dir, pattern, suffix)
+    return outfile
+
+
+def compress_image(infile, outfile='', mb=150, step=10, quality=80):
+    &quot;&quot;&quot;不改变图片尺寸压缩到指定大小
+    :param infile: 压缩源文件
+    :param outfile: 压缩文件保存地址
+    :param mb: 压缩目标，KB
+    :param step: 每次调整的压缩比率
+    :param quality: 初始压缩比率
+    :return: 压缩文件地址，压缩文件大小
+    &quot;&quot;&quot;
+    o_size = get_size(infile)
+    if o_size &lt;= mb:
+        return infile # infile文件大小满足要求直接返回本身
+    outfile = out_filename(infile, outfile, pattern='-compressed')
+    with open(infile, 'rb') as fp:  # 改句柄主要是通过with管理图片文件的自动关闭
+        while o_size &gt; mb:
+            im = Image.open(fp)
+            im.save(outfile, quality=quality)
+            if quality - step &lt; 0:
+                break
+            quality -= step
+            o_size = get_size(outfile)
+    return outfile
+
+
+def resize_image(infile, outfile='', x_s=1376):
+    &quot;&quot;&quot;修改图片尺寸
+    :param infile: 图片源文件
+    :param outfile: 重设尺寸文件保存地址
+    :param x_s: 设置的宽度,高度会等比例调整
+    :return:
+    &quot;&quot;&quot;
+    with open(infile, 'rb') as fp:
+        im = Image.open(fp)
+        x, y = im.size
+        y_s = int(y / x * x_s)  #  先除法再乘法可以防止数据溢出
+        out = im.resize((x_s, y_s), Image.ANTIALIAS)
+        outfile = out_filename(infile, outfile, pattern='-resized')
+        out.save(outfile)
+    return outfile
+
+# 该方法将一系列的函数串联起来，方便创建多线程引用！
+def run(infile, dst_dir):
+    outfile_1 = resize_image(infile, outfile='', x_s=1376)
+    outfile_2 = compress_image(outfile_1, outfile='', mb=150, step=10, quality=80)
+    shutil.move(outfile_2, dst_dir)
+
+
+if __name__ == '__main__':
+    src_dir = '.\\pics\\'
+    dst_dir = '.\\pics_modified\\'
+    try:
+        os.mkdir(dst_dir)
+    except FileExistsError:
+        print('目标文件夹已存在！')
+
+    for picture in os.listdir(src_dir):
+        infile = os.path.join(src_dir, picture)
+        # 如果处理的图片数量过大，需控制总线程数量
+        img_thread = Thread(target=run, args=(infile, dst_dir))
+        img_thread.start()
+</code></pre>
+<p><mark>思考：通过协程在处理resize_image()函数的I/O阻塞时，处理compress_image()，然后当compress_image()中有文件时，在resize_image()和compress_image()的阻塞过程中执行shutil.move()函数，这样最大化的利用cpu，如何实现呢？</mark></p>
+<h2 id="3-利用tiny-png进行压缩保留文件信息">3  <a href="https://www.cnblogs.com/xiaocaidev/p/13617120.html">利用Tiny PNG进行压缩，保留文件信息</a></h2>
+<h2 id="4-smally批量无损压缩jpg和png">4  <a href="https://www.pynote.net/archives/882">smally：批量无损压缩JPG和PNG</a></h2>
+<p><strong>其它</strong>：<a href="https://tslow.cn/slim/">墩图瘦身</a>可以实现将图片瘦身到指定的大小。</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://a1ando.github.io/NHK5jwY8d/">
+              <h3 class="post-title">
+                下一篇：python 杂记
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">分享|记录|学习</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://a1ando.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

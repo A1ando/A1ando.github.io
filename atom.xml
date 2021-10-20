@@ -1,0 +1,1634 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://a1ando.github.io</id>
+    <title>艾南岛</title>
+    <updated>2021-10-20T13:38:04.750Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://a1ando.github.io"/>
+    <link rel="self" href="https://a1ando.github.io/atom.xml"/>
+    <subtitle>分享|记录|学习</subtitle>
+    <logo>https://a1ando.github.io/images/avatar.png</logo>
+    <icon>https://a1ando.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2021, 艾南岛</rights>
+    <entry>
+        <title type="html"><![CDATA[如何用Python实现图片无损压缩（未解决）]]></title>
+        <id>https://a1ando.github.io/VGhlVVJQW/</id>
+        <link href="https://a1ando.github.io/VGhlVVJQW/">
+        </link>
+        <updated>2020-12-28T14:53:22.000Z</updated>
+        <summary type="html"><![CDATA[<p><strong>需求</strong>：不管是web开发还是实际在撰写word时，都有无损压缩图片的需求，其中word自带的图片压缩功能大多数时候不好用。如何通过python实现图片无损压缩？本文暂未给出完美答案，重在总结学习，希望有一天能实现目标</p>
+]]></summary>
+        <content type="html"><![CDATA[<p><strong>需求</strong>：不管是web开发还是实际在撰写word时，都有无损压缩图片的需求，其中word自带的图片压缩功能大多数时候不好用。如何通过python实现图片无损压缩？本文暂未给出完美答案，重在总结学习，希望有一天能实现目标</p>
+<!-- more -->
+<p><strong>方法</strong>：首先简单了解<code>pillow</code>模块，下列是一些图片有损压缩的实现方式</p>
+<h2 id="1-简单的图片12压缩">1 <a href="https://www.cnblogs.com/codernice/p/11698228.html">简单的图片1/2压缩</a></h2>
+<p>这种方法的代码如下，只是简单的将图片宽度和高度像素除以2，实际占用空间变成原来的1/2<sup>2</sup>，即1/4。但是无法满足指定图片大小的需求。</p>
+<pre><code class="language-python">#!/user/bin/env python
+# -*- coding:utf-8 -*-
+import os
+import threading
+from PIL import Image
+
+
+# 使用这个函数就无法利用多线程，但是可以尝试改写成协程
+def compression(src_folder, dst_folder):
+    try:
+        os.mkdir(dst_folder)
+    except FileExistsError:
+        print('目标文件目录已存在！')
+
+    for pic in os.listdir(src_folder):
+        src_path = os.path.join(src_folder, pic)
+        dst_path = os.path.join(dst_folder, pic)
+        try:
+            src_img = Image.open(src_path)
+            w, h = src_img.size
+            tar_img = src_img.resize((int(w/2), int(h/2)), Image.ANTIALIAS)
+            tar_img.save(dst_path)
+        except OSError:
+            print(pic + '处理失败！')
+
+            
+# 处理单张图片，该函数更加容易复用，将循环获取文件操作交给主线程即可            
+def compression_sig(filename, src_dir, dst_dir):
+    src_path = os.path.join(src_dir, filename)
+    dst_path = os.path.join(dst_dir, filename)
+    try:
+        with Image.open(src_path) as src_img:
+            w, h = src_img.size
+            # 图片宽度和高度除以2，Image.ANTALIAS为高质量标记，抗锯齿
+            tar_img = src_img.resize((int(w / 2), int(h / 2)), Image.ANTIALIAS)
+            tar_img.save(dst_path)
+    except OSError: # 这里可能读取的src_img不是图片格式，也可能dst_path已存在，写入出错
+        print(filename + '处理失败！')
+
+
+if __name__ == '__main__':
+    src_dir = r'.\source'
+    dst_dir = r'.\target'
+    try:
+        os.mkdir(dst_dir)
+    except FileExistsError:
+        print('目标文件夹已存在！')
+	# 如果处理的图片数量过大，需控制总线程数量
+    for image in os.listdir(src_dir):
+        image_thread = threading.Thread(target=compression_sig, 
+                                        args=(image, src_dir, dst_dir))
+        image_thread.start()
+</code></pre>
+<p><mark>思考：通过限制一次性能够处理的队列中的元素个数来间接控制线程数量，这段代码应该怎么写？</mark></p>
+<h2 id="2-指定文件大小进行压缩">2 <a href="https://www.cnblogs.com/li1992/p/10675769.html">指定文件大小进行压缩</a></h2>
+<p>代码已经能满足将图片压缩到指定大小</p>
+<pre><code class="language-python">#!/user/bin/env python
+# -*- coding:utf-8 -*-
+import os
+import shutil
+from PIL import Image
+from threading import Thread
+
+
+def get_size(file):
+    # 获取文件大小:KB
+    size = os.path.getsize(file)
+    return size / 1024
+
+
+def out_filename(infile, outfile, pattern='-out'):
+    if outfile:
+        return outfile
+    dir, suffix = os.path.splitext(infile)
+    outfile = '{0}{1}{2}'.format(dir, pattern, suffix)
+    return outfile
+
+
+def compress_image(infile, outfile='', mb=150, step=10, quality=80):
+    &quot;&quot;&quot;不改变图片尺寸压缩到指定大小
+    :param infile: 压缩源文件
+    :param outfile: 压缩文件保存地址
+    :param mb: 压缩目标，KB
+    :param step: 每次调整的压缩比率
+    :param quality: 初始压缩比率
+    :return: 压缩文件地址，压缩文件大小
+    &quot;&quot;&quot;
+    o_size = get_size(infile)
+    if o_size &lt;= mb:
+        return infile # infile文件大小满足要求直接返回本身
+    outfile = out_filename(infile, outfile, pattern='-compressed')
+    with open(infile, 'rb') as fp:  # 改句柄主要是通过with管理图片文件的自动关闭
+        while o_size &gt; mb:
+            im = Image.open(fp)
+            im.save(outfile, quality=quality)
+            if quality - step &lt; 0:
+                break
+            quality -= step
+            o_size = get_size(outfile)
+    return outfile
+
+
+def resize_image(infile, outfile='', x_s=1376):
+    &quot;&quot;&quot;修改图片尺寸
+    :param infile: 图片源文件
+    :param outfile: 重设尺寸文件保存地址
+    :param x_s: 设置的宽度,高度会等比例调整
+    :return:
+    &quot;&quot;&quot;
+    with open(infile, 'rb') as fp:
+        im = Image.open(fp)
+        x, y = im.size
+        y_s = int(y / x * x_s)  #  先除法再乘法可以防止数据溢出
+        out = im.resize((x_s, y_s), Image.ANTIALIAS)
+        outfile = out_filename(infile, outfile, pattern='-resized')
+        out.save(outfile)
+    return outfile
+
+# 该方法将一系列的函数串联起来，方便创建多线程引用！
+def run(infile, dst_dir):
+    outfile_1 = resize_image(infile, outfile='', x_s=1376)
+    outfile_2 = compress_image(outfile_1, outfile='', mb=150, step=10, quality=80)
+    shutil.move(outfile_2, dst_dir)
+
+
+if __name__ == '__main__':
+    src_dir = '.\\pics\\'
+    dst_dir = '.\\pics_modified\\'
+    try:
+        os.mkdir(dst_dir)
+    except FileExistsError:
+        print('目标文件夹已存在！')
+
+    for picture in os.listdir(src_dir):
+        infile = os.path.join(src_dir, picture)
+        # 如果处理的图片数量过大，需控制总线程数量
+        img_thread = Thread(target=run, args=(infile, dst_dir))
+        img_thread.start()
+</code></pre>
+<p><mark>思考：通过协程在处理resize_image()函数的I/O阻塞时，处理compress_image()，然后当compress_image()中有文件时，在resize_image()和compress_image()的阻塞过程中执行shutil.move()函数，这样最大化的利用cpu，如何实现呢？</mark></p>
+<h2 id="3-利用tiny-png进行压缩保留文件信息">3  <a href="https://www.cnblogs.com/xiaocaidev/p/13617120.html">利用Tiny PNG进行压缩，保留文件信息</a></h2>
+<h2 id="4-smally批量无损压缩jpg和png">4  <a href="https://www.pynote.net/archives/882">smally：批量无损压缩JPG和PNG</a></h2>
+<p><strong>其它</strong>：<a href="https://tslow.cn/slim/">墩图瘦身</a>可以实现将图片瘦身到指定的大小。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[python 杂记]]></title>
+        <id>https://a1ando.github.io/NHK5jwY8d/</id>
+        <link href="https://a1ando.github.io/NHK5jwY8d/">
+        </link>
+        <updated>2020-12-20T13:26:52.000Z</updated>
+        <summary type="html"><![CDATA[<p>学习python过程中的杂记，觉得有用的就积累，不定时的补充，温故知新！</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>学习python过程中的杂记，觉得有用的就积累，不定时的补充，温故知新！</p>
+<!-- more -->
+<p>函数列表</p>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>函数</th>
+<th>作用/详见</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>itertools</td>
+<td>dropwhile</td>
+<td>2.2.1</td>
+</tr>
+<tr>
+<td></td>
+<td>islice</td>
+<td>2.2.2</td>
+</tr>
+<tr>
+<td></td>
+<td>permutations（iterable， num）</td>
+<td>返回iterable中num个元素的所有排列组合</td>
+</tr>
+<tr>
+<td></td>
+<td>combinations</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>combinations_with_replacement</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>zip_longest</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>chain</td>
+<td>将不同迭代对象链接起来</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-列表中查找最值">1. 列表中查找最值</h2>
+<p>时间：2020.05.22</p>
+<img src="https://i.loli.net/2020/12/20/nsoV9X8hUqrNJGm.png" alt="list(item)中查找N个最值"  />
+<h2 id="2-cookbook第一章">2. Cookbook第一章</h2>
+<h3 id="21-第一章">2.1 第一章</h3>
+<p>时间2020.05.23</p>
+<p>对Python Cookbook第一章进行小结</p>
+<figure data-type="image" tabindex="1"><img src="https://i.loli.net/2020/12/20/3DENfA6cILWMC7S.png" alt="第一章 数据结构和算法" loading="lazy"></figure>
+<h3 id="22-迭代器">2.2 迭代器</h3>
+<h4 id="221-跳过一个可迭代对象中的前一部分元素itertoolsdropwhile">2.2.1  跳过一个可迭代对象中的前一部分元素<code>itertools.dropwhile</code></h4>
+<p>这是一个测试文件some sentences.txt</p>
+<pre><code class="language-txt"># fsdfsdfsdfsdf
+#dfdfsdf
+# fdfefesfefe
+date: 2020
+time: 12.25
+count: 3
+## dfsdfds
+# dfdsfsdf
+</code></pre>
+<p>读取开头不以#开头的元素，后续再以#开头仍旧会被读取！</p>
+<pre><code class="language-python">from itertools import dropwhile
+with open('some sentences.txt', 'r', encoding='utf8') as f:
+    for line in dropwhile(lambda x: x.startswith('#'), f):
+        print(line.strip())
+</code></pre>
+<p>运行结果</p>
+<pre><code class="language-txt">date: 2020
+time: 12.25
+count: 3
+## dfsdfds
+# dfdsfsdf
+</code></pre>
+<p>若需要对所有以#开头的元素进行过滤，代码如下：</p>
+<pre><code class="language-python">with open('some sentences.txt', 'r', encoding='utf8') as f:
+    lines = (line for line in f if not line.startswith('#'))
+    for line in lines:
+        print(line, end='')
+</code></pre>
+<h4 id="222-跳过前几个元素itertoolsislice">2.2.2 跳过前几个元素<code>itertools.islice</code></h4>
+<pre><code class="language-python">items = ['a', 'b', 'c', 1, 4, 1.2, 10]
+for x in islice(items, 3, 5):
+    print(x)
+</code></pre>
+<p>运行结果</p>
+<pre><code class="language-txt">1
+4
+</code></pre>
+<h4 id="223-itertoolszip_longest">2.2.3 <code>itertools.zip_longest</code></h4>
+<pre><code class="language-python">from itertools import zip_longest
+a = [1, 2, 3]
+b = list('xyzv')
+for i in zip_longest(a, b, fillvalue=0):
+    print(i)
+</code></pre>
+<p>运行结果</p>
+<pre><code class="language-python">(1, 'x')
+(2, 'y')
+(3, 'z')
+(0, 'v')
+</code></pre>
+<h4 id="224-扁平化序列">2.2.4 扁平化序列</h4>
+<pre><code class="language-python">from collections.abc import Iterable
+
+
+def flatten(items, ignore_types=(str, bytes)):
+    for x in items:
+        if isinstance(x, Iterable) and not isinstance(x, ignore_types):
+            yield from flatten(x)
+        else:
+            yield x
+
+items = [[1, 2, 3, 5], 'a', [2, 5, [2, 6, ['bbv']]]]
+for x in flatten(items):
+    print(x, end=' ')
+</code></pre>
+<p>运行结果为</p>
+<pre><code class="language-python">1 2 3 5 a 2 5 2 6 bbv 
+</code></pre>
+<h2 id="3-html模式查看pydoc文件">3. HTML模式查看pydoc文件</h2>
+<p>时间2020.05.23</p>
+<p>本地动态生成</p>
+<ol>
+<li>在CMD命令行窗口中输入：<code>python -m pydoc -p 1234</code></li>
+<li>接着输入<code>b</code>启动浏览；输入<code>q</code>退出</li>
+</ol>
+<p>第三方安装源</p>
+<ul>
+<li>清华源</li>
+</ul>
+<p>​	<code>pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pyqt5</code></p>
+<h2 id="4-__init__和__new__">4. <code>__init__</code>和<code>__new__</code></h2>
+<p>时间2020.08.01</p>
+<p><code>__init__</code>和<code>__new__</code>详解https://www.bilibili.com/video/BV1vA411b7Rn?p=58</p>
+<p><code>__str__</code>方法</p>
+<figure data-type="image" tabindex="2"><img src="https://i.loli.net/2020/12/20/nDia79A5z2jZxbe.jpg" alt="Snipaste_2020-08-01_18-48-59" loading="lazy"></figure>
+<p><code>__del__</code>方法</p>
+<p>面向对象的编程：封装、继承和多态</p>
+<h2 id="5-repr和str">5. <code>repr()</code>和<code>str()</code></h2>
+<p>时间2020.11.01</p>
+<p><code>repr()</code>和<code>str()</code>的区别https://blog.csdn.net/kongsuhongbaby/article/details/87398394</p>
+<h2 id="6-浅拷贝和深拷贝">6. 浅拷贝和深拷贝</h2>
+<p>时间2020.11.23</p>
+<pre><code class="language-Python">row = ['_'] * 3
+print(row)
+board = []
+for i in range(3):
+    board.append(row)    # 浅拷贝，说明每次加入的row都是对row的再次引用
+print(board)
+board[1][2] = 'X'
+print(board)
+
+#output:
+['_', '_', '_']
+[['_', '_', '_'], ['_', '_', '_'], ['_', '_', '_']]
+[['_', '_', 'X'], ['_', '_', 'X'], ['_', '_', 'X']]
+</code></pre>
+<pre><code class="language-Python">board = []
+for i in range(3):
+    row = ['_'] * 3
+    board.append(row)    # 深拷贝，每次进入循环都会重新建立一个新的row
+print(board)
+board[1][2] = 'X'
+print(board)
+
+#output:
+[['_', '_', '_'], ['_', '_', '_'], ['_', '_', '_']]
+[['_', '_', '_'], ['_', '_', 'X'], ['_', '_', '_']]
+</code></pre>
+<h2 id="7-python-tutor">7. <a href="http://www.pythontutor.com/">Python Tutor</a></h2>
+<p>方便查看python程序具体怎么运行的！</p>
+<figure data-type="image" tabindex="3"><img src="https://i.loli.net/2020/12/20/vX6MG5q2kDihpan.jpg" alt="Snipaste_2020-11-23_20-30-45" loading="lazy"></figure>
+<h2 id="8-字典">8. 字典</h2>
+<p>时间2020.12.02</p>
+<figure data-type="image" tabindex="4"><img src="https://i.loli.net/2020/12/21/FRlcOYpEWrKL7kQ.jpg" alt="Snipaste_2020-12-02_21-59-46" loading="lazy"></figure>
+<h2 id="9-python中关键字global与nonlocal的区别">9. <a href="https://blog.csdn.net/xcyansun/article/details/79672634">Python中关键字global与nonlocal的区别</a></h2>
+<p>时间2020-12-04</p>
+<p>第一，两者的功能不同。global关键字修饰变量后标识该变量是全局变量，对该变量进行修改就是修改全局变量，而nonlocal关键字修饰变量后标识该变量是上一级函数中的局部变量，如果上一级函数中不存在该局部变量，nonlocal位置会发生错误（最上层的函数使用nonlocal修饰变量必定会报错）</p>
+<p>第二，两者使用的范围不同。global关键字可以用在任何地方，包括最上层函数中和嵌套函数中，即使之前未定义该变量，global修饰后也可以直接使用，而nonlocal关键字只能用于嵌套函数中，并且外层函数中定义了相应的局部变量，否则会发生错误（见第一）</p>
+<h2 id="10-进程-线程和协程">10. 进程、线程和协程</h2>
+<p>时间2020-12-20</p>
+<h3 id="101-进程和线程">10.1 进程和线程</h3>
+<p>讲解最清晰的线程和进程视频：https://www.bilibili.com/video/BV1fz4y1D7tU?p=16</p>
+<p>协程：https://www.bilibili.com/video/BV1Ke411W71L?p=3</p>
+<h3 id="102-协程">10.2 协程</h3>
+<p>笔记连接：https://pythonav.com/wiki/detail/6/91/</p>
+<p>协程函数，定义函数时候<code>async def 函数名</code></p>
+<p>协程对象，执行 协程函数（）得到的协程对象</p>
+<pre><code class="language-python">async def func():
+    pass
+
+result = func()
+</code></pre>
+<p>注意：执行协程函数创建协程对象，函数内部代码不会执行。</p>
+<pre><code class="language-python">import asyncio
+
+
+async def others():
+    print('start')
+    await asyncio.sleep(2)
+    print('end')
+    return 'fanhuizhi'
+
+async def func():
+    print('执行协程函数内部代码')
+
+    # 遇到I/O操作挂起当前协程，等I/O操作完成之后再继续往下执行。当前协程挂起时，事件循环可以去执行其它协程
+    responce1 = await others()
+    print('I/O请求结束，结果为：', responce1)
+
+    responce2 = await others()
+    print('I/O请求结束，结果为：', responce2)
+
+asyncio.run(func())
+</code></pre>
+<p>执行结果为：</p>
+<pre><code class="language-reStructuredText">执行协程函数内部代码
+start
+end
+I/O请求结束，结果为： fanhuizhi
+start
+end
+I/O请求结束，结果为： fanhuizhi
+</code></pre>
+<p>await就是等待对象的值得到结果之后再继续往下走。</p>
+<h4 id="1021-task对象">10.2.1 Task对象</h4>
+<p>在事件循环中添加多个任务</p>
+<pre><code class="language-python">import asyncio
+
+
+async def func():
+    print(1)
+    await asyncio.sleep(2)
+    print(2)
+    return '返回值'
+
+async def main():
+    print('main开始')
+
+    task_list = [
+        asyncio.create_task(func(), name='t1'),
+        asyncio.create_task(func(), name='t2')
+    ]
+
+    print(&quot;main结束&quot;)
+	
+    # done为集合，当timeout=None时，done为函数func()的返回值，如果timeout设置为1的话，函数肯定来不及执行完，那么未执行的结果会放在pending集合里面，此时done为set().
+    done, pending = await asyncio.wait(task_list, timeout=1)
+    print(done)
+    print(pending)
+
+asyncio.run(main())
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[在回调函数中携带额外的状态]]></title>
+        <id>https://a1ando.github.io/1ELoXq5zv/</id>
+        <link href="https://a1ando.github.io/1ELoXq5zv/">
+        </link>
+        <updated>2020-12-04T14:47:05.000Z</updated>
+        <summary type="html"><![CDATA[<p>闭包、回调函数的利用</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>闭包、回调函数的利用</p>
+<!-- more -->
+<pre><code class="language-Python">class SequenceNo:
+    def __init__(self):
+        self.sequence = 0
+
+def handler(result, seq):
+    seq.sequence +=1
+    print('[{}] Got: {}'.format(seq.sequence, result))
+
+def make_handler_1():
+    sequence = 0
+    def handler(result):
+        nonlocal sequence
+        sequence += 1
+        print('[{}] Got: {}'.format(sequence, result))
+    return handler
+
+def make_handler_2():
+    sequence = 0
+    while True:
+        result = yield
+        sequence += 1
+        print('[{}] Got: {}'.format(sequence, result))
+
+def apply_async(func, args, *, callback):
+    result = func(*args)
+    callback(result)
+
+def add(x, y):
+    return x+y
+
+if __name__ == '__main__':
+    # 方案1 引入实例
+    # from functools import partial
+    #
+    # seq = SequenceNo()
+    # apply_async(add, (2, 3), callback=partial(handler, seq=seq))
+    # apply_async(add, ('hello', 'world'), callback=partial(handler, seq=seq))
+
+    # 方案2 利用闭包函数
+    # handler = make_handler_1()
+    # apply_async(add, (2, 3), callback=handler)
+    # apply_async(add, ('hello', 'world'), callback=handler)
+
+    # 方案3 利用协程（coroutine），比较难理解
+    handler = make_handler_2()
+    next(handler) # Advance to the yield
+    apply_async(add, (2, 3), callback=handler.send)
+    apply_async(add, ('hello', 'world'), callback=handler.send)
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Python小程序（2）身份证号码校验并提取信息]]></title>
+        <id>https://a1ando.github.io/RhyDzT7ra/</id>
+        <link href="https://a1ando.github.io/RhyDzT7ra/">
+        </link>
+        <updated>2020-11-26T15:33:51.000Z</updated>
+        <summary type="html"><![CDATA[<p>身份证号码主要包括以下知识点：</p>
+<ul>
+<li>
+<p><strong>地区码</strong>：按照GB/T2260执行，通常1开头为华北地区、2开头为东北地区、3开头为华东地区、4开头为华中地区和华南地区、5开头为西南地区、6开头为西北地区、7和8开头为特别地区。</p>
+</li>
+<li>
+<p><strong>出生日期码</strong>：按GB/T7408执行</p>
+</li>
+<li>
+<p><strong>顺序码</strong>：表示同一地址码所标识的区域范围内，对同年同月出生的人编订的顺序号，奇数分为男性、偶数分给女性</p>
+</li>
+<li>
+<p><strong>校验码</strong>：按照ISO 7064:1983.MOD11-2计算出来的校验码得到第18位数字</p>
+<p>校验方法：详见<code>validate(ID)</code>函数</p>
+</li>
+</ul>
+]]></summary>
+        <content type="html"><![CDATA[<p>身份证号码主要包括以下知识点：</p>
+<ul>
+<li>
+<p><strong>地区码</strong>：按照GB/T2260执行，通常1开头为华北地区、2开头为东北地区、3开头为华东地区、4开头为华中地区和华南地区、5开头为西南地区、6开头为西北地区、7和8开头为特别地区。</p>
+</li>
+<li>
+<p><strong>出生日期码</strong>：按GB/T7408执行</p>
+</li>
+<li>
+<p><strong>顺序码</strong>：表示同一地址码所标识的区域范围内，对同年同月出生的人编订的顺序号，奇数分为男性、偶数分给女性</p>
+</li>
+<li>
+<p><strong>校验码</strong>：按照ISO 7064:1983.MOD11-2计算出来的校验码得到第18位数字</p>
+<p>校验方法：详见<code>validate(ID)</code>函数</p>
+</li>
+</ul>
+<!-- more -->
+<pre><code class="language-Python">import pandas as pd
+from datetime import datetime
+
+
+def validate(ID, flag=False):
+    validate_seq = list('10x98765432')
+    factor_seq = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
+
+    if len(ID) == 18:
+        try:
+            index = sum(map(lambda x, y: int(x) * y, list(ID[:17]), factor_seq)) % 11
+            if ID[-1].lower() == validate_seq[index]:
+                flag = True
+        except ValueError:
+            pass
+    return flag
+
+
+# f'升序数列为{arr}，从{left}到{right}的索引范围内查找{x}的索引')
+def bi_search(arr, x, left=0, right=None):
+    if right is None:
+        right = len(arr)
+    while left &lt;= right:
+        # 找到中间位置。求中点写成(left+right)/2更容易溢出，所以不建议这样写
+        mid = int(left + (right - left) / 2)
+
+        # 检查x是否出现在位置mid
+        if arr[mid] == x:
+            # print('found %d 在索引位置%d 处' % (x, mid))
+            return mid
+
+        # 假如x更大，则不可能出现在左半部分
+        elif arr[mid] &lt; x:
+            left = mid + 1  # 搜索区间变为[mid+1,right]
+            # print('区间缩小为[%d,%d]' % (mid + 1, right))
+
+        # 同理，假如x更小，则不可能出现在右半部分
+        else:
+            right = mid - 1  # 搜索区间变为[left,mid-1]
+            # print('区间缩小为[%d,%d]' % (left, mid - 1))
+
+    # 假如搜索到这里，表明x未出现在[left,right]中
+    raise ValueError
+
+
+def get_area(ID, flag=False):
+    birth = ID[0:6]
+    path = r'地区码(utf-8-sig).csv'
+    df = pd.read_csv(path, encoding='utf-8-sig')
+    try:
+        index = bi_search(df['areacode'], int(birth))
+        return df['nativeplace'][index]
+    except ValueError:
+        return flag
+
+
+def get_birth(ID, flag=False):
+    birth = ID[6:14]
+    date_from = datetime(year=1900, month=1, day=1)  # 1900-01-01 00:00:00
+    date_to = datetime.today()
+    birth_date = datetime(year=int(birth[:4]), month=int(birth[4:6]), day=int(birth[6:]))
+
+    if date_from &lt; birth_date &lt;= date_to:
+        age = date_to.year - birth_date.year
+        birthday = birth_date.strftime('%Y-%m-%d')
+        return {'age': age, 'birthday': birthday}
+    else:
+        return flag
+
+
+def get_gender(ID):
+    if int(ID[16]) % 2 == 0:  # 第17位是偶数为女性，奇数为男性
+        gender = '女'
+    else:
+        gender = '男'
+    return gender
+
+
+def run(lst):
+    for ID in lst:
+        ID = str(ID)
+        # 全部校验flag,任何一处有问题说明身份证号无效
+        if validate(ID) and get_birth(ID):
+            if get_area(ID):
+                yield {'身份证号': ID,
+                       '发证地': get_area(ID),
+                       '出生日期': get_birth(ID)['birthday'],
+                       '年龄': get_birth(ID)['age'],
+                       '性别': get_gender(ID)}
+            else:
+                print(f'{ID} 发证地已撤并，请更新地区码文件！')
+        else:
+            print(f'{ID} 身份证号无效！')
+
+
+if __name__ == '__main__':
+    # 从网上找一些身份证号码验证
+    ID_lst = [433101199607123521, '33900519930206581x']
+    for i in run(ID_lst):
+        print(i)
+
+</code></pre>
+<p><strong>地区码(utf-8-sig).csv</strong>链接: https://pan.baidu.com/s/1br4EX7M_1w9OHHHwZD-Uaw<br>
+提取码: pes4</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Python小程序（1）批量按下载顺序重命名文件]]></title>
+        <id>https://a1ando.github.io/JlgVPpNyM/</id>
+        <link href="https://a1ando.github.io/JlgVPpNyM/">
+        </link>
+        <updated>2020-11-15T13:24:16.000Z</updated>
+        <summary type="html"><![CDATA[<p>当我们采集到一组图片的下载链接，使用<strong>IDM</strong>按照顺序批量下载图片后，下载后的文件名称一般是链接最后的文件名，想要将它按照下载顺序进行编号，方法是建立字典<code>dict = {'文件名': '序号'}</code>，然后利用<code>os.renames()</code>进行重命名即可。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>当我们采集到一组图片的下载链接，使用<strong>IDM</strong>按照顺序批量下载图片后，下载后的文件名称一般是链接最后的文件名，想要将它按照下载顺序进行编号，方法是建立字典<code>dict = {'文件名': '序号'}</code>，然后利用<code>os.renames()</code>进行重命名即可。</p>
+<!--more-->
+<pre><code class="language-Python">import os
+from random import randint
+
+&quot;&quot;&quot;
+函数create_rand_num()、check()、create_files()是为了模拟生成需要的可编辑数据
+函数rename_it()改变上面生成的数据
+
+&quot;&quot;&quot;
+
+
+# 创建随机的编号长度为6位数的文件名表单
+def create_rand_num():
+    with open('randtext.txt', 'w', encoding='utf8') as f:
+        for i in range(100):
+            f.write(str(i+1) + ',' + str(randint(100000, 999999))+'.txt'+ '\n')
+    print('Create rand filenames Successfully! check it in randtext.txt!')
+
+
+# 检查是否有同名文件
+def check():
+    try:
+        with open('randtext.txt', 'r', encoding='utf8') as f:
+            g = [i.split(',')[-1] for i in f.readlines()]
+            print(f'文件中共有{len(g)}个文件')
+            if len(set(g)) == len(g):
+                print('文件中没有同名文件！')
+            else:
+                print('文件中有同名文件！')
+    except Exception as e:
+        print(e)
+
+         
+# 创建一个文件夹装单个文件
+def create_files():
+    try:
+        os.mkdir('test_files')
+        with open('randtext.txt', 'r', encoding='utf8') as f:
+            for filename in f.readlines():
+                filename = filename.strip().split(',')[-1]
+                s = open(f'./test_files/{filename}', 'w', encoding='utf8')
+                s.write(filename[:-4])
+            s.close()
+        print('文件夹及单个文件已完成创建！')
+    except Exception as e:
+        print(e)
+
+
+# 给每个文件重命名为它们的序号
+def rename_it():
+    item = {}
+    path  = os.getcwd()
+
+    with open('randtext.txt', 'r', encoding='utf8') as f:
+        filenames = f.readlines()
+        #print(type(filenames))
+        for i, filename in enumerate(filenames):
+            item[filename.strip().split(',')[-1]] = str(i+1)
+            #print(item)
+    for file in os.listdir(path + '/test_files'):
+        new_name = item[file].zfill(3) + '.txt'
+        old_path = path + '/test_files/' + file
+        new_path = path + '/test_files/' + new_name
+        os.renames(old_path, new_path)
+    
+    print('文件重命名成功！')
+        
+
+if __name__ == '__main__':
+    create_rand_num()
+    check()
+    create_files()
+    #上面三个函数运行完，先查看数据再关闭上面三个函数，打开rename_it()
+    #rename_it()
+    
+</code></pre>
+<p>涉及的知识点小结</p>
+<ul>
+<li>strip() 去除字符串两端的空格和换行符<code>\n</code>，因为readlines()是以文本中的换行符进行切片生成列表的，但是每个元素都在最后保留了换行符，所以读取的时候要将换行符去除</li>
+<li>zfill() 将数字的字符串左边填充0直到字符串满足给定的长度，如果元字符串长度超过给定的值，则不变</li>
+<li>enumerate(list) 生成有序列表，每个元素是一个元组(x, y)，x为int类型的序数， y为list中的元素</li>
+</ul>
+<p>上面的程序改写，文件结构如下，即pics、rename_it.py、text.txt为同级文件：</p>
+<pre><code>|---pics	        #装有图片的文件夹
+|---rename_it.py	#脚本程序
+|---text.txt		#下载顺序列表
+</code></pre>
+<p>简单的<code>rename_it.py</code>程序如下：</p>
+<pre><code class="language-python">import os
+
+
+base = {}
+with open('text.txt', 'r', encoding='utf8') as f:
+    for i, order in enumerate(f):
+        base[order] = str(i+1)
+
+pic_path = './pics'
+for pic in os.listdir(pic_path):
+    old_name = os.path.join(pic_path, pic)
+    #如果图片是'PNG'，下面相应的更改
+    new_name = os.path.join(pic_path, base[pic].zfill(3)+'.jpg') 
+    os.renames(old_name, new_name)
+    
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[正则表达式]]></title>
+        <id>https://a1ando.github.io/Pvf7F4ytU/</id>
+        <link href="https://a1ando.github.io/Pvf7F4ytU/">
+        </link>
+        <updated>2020-11-15T06:57:20.000Z</updated>
+        <summary type="html"><![CDATA[<p>积累各种正则表达式</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>积累各种正则表达式</p>
+<!-- more -->
+<table>
+<thead>
+<tr>
+<th>匹配项</th>
+<th>表达式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>中文字符</td>
+<td><p style="color:red">[\u4e00-\u9fa5]</p></td>
+</tr>
+<tr>
+<td>英文字母</td>
+<td><p style="color:red">[a-zA-Z]</p></td>
+</tr>
+<tr>
+<td>数字</td>
+<td><p style="color:red">[0-9]</p></td>
+</tr>
+<tr>
+<td>可以含有汉字、数字、字母、下划线</br>但不能以下划线开头和结尾</td>
+<td><p style="color:red">^(?!_)(?!.*?_<span class='katex-error' title='ParseError: KaTeX parse error: Got function &#039;\u&#039; with no arguments as subscript at position 13: )[a-zA-Z0-9_\̲u̲4e00-\u9fa5]+'>)[a-zA-Z0-9_\u4e00-\u9fa5]+</span></p></td>
+</tr>
+<tr>
+<td>2~4个汉字</td>
+<td><p style="color:red">^[\u4e00-\u9fa5]{2,4}$</p></td>
+</tr>
+<tr>
+<td>正整数</td>
+<td><p style="color:red">^[1-9]*[1-9][0-9]*$</p></td>
+</tr>
+<tr>
+<td>负整数</td>
+<td><p style="color:red">^-[1-9]*[1-9][0-9]*$</p></td>
+</tr>
+<tr>
+<td>匹配前面带有0的编号</td>
+<td><p style="color:red">^[0-9]*[1-9][0-9]*$</p></td>
+</tr>
+<tr>
+<td>电子邮箱验证</td>
+<td><p style="color:red">^\w+([-+.]\w+)*@\w+([-.]\w+)*.\w+([-.]\w+)*$</p></td>
+</tr>
+<tr>
+<td>URL地址</td>
+<td><p style="color:red">^http://([\w-]+.)+[\w-]+(/[\w-./?%&amp;=]*)?$</p></td>
+</tr>
+<tr>
+<td>长度8-10的用户密码（以字母开头）</td>
+<td><p style="color:red">^[a-zA-Z]\w{7,9}$</p></td>
+</tr>
+</tbody>
+</table>
+<center> 正则表达式特殊符号及用法表</center>
+<table>
+<thead>
+<tr>
+<th>字符</th>
+<th><center>含义</center></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><center>.</center></td>
+<td>表示匹配除了换行符外的任何字符 注：通过设置 re.DOTALL 标志可以使 <code>.</code> 匹配任何字符（包含换行符）</td>
+</tr>
+<tr>
+<td><center>|</center></td>
+<td>A | B，表示匹配正则表达式 A 或者 B</td>
+</tr>
+<tr>
+<td><center>^</center></td>
+<td>1. （脱字符）匹配输入字符串的开始位置 2. 如果设置了 re.MULTILINE 标志，<code>^</code> 也匹配换行符之后的位置</td>
+</tr>
+<tr>
+<td><center>$</center></td>
+<td>1. 匹配输入字符串的结束位置 2. 如果设置了 re.MULTILINE 标志，<code>$</code>也匹配换行符之前的位置</td>
+</tr>
+<tr>
+<td><center>\</center></td>
+<td>1. 将一个普通字符变成特殊字符，例如 <code>\d</code> 表示匹配所有十进制数字</br> 2. 解除元字符的特殊功能，例如<code>\.</code>表示匹配点号本身 </br>3. 引用序号对应的子组所匹配的字符串</td>
+</tr>
+<tr>
+<td><center>[...]</center></td>
+<td>字符类，匹配所包含的任意一个字符 注1：连字符 - 如果出现在字符串中间表示字符范围描述；如果如果出现在首位则仅作为普通字符 注2：特殊字符仅有反斜线 \ 保持特殊含义，用于转义字符。其它特殊字符如<code>*</code>、<code>+</code>、<code>?</code>等均作为普通字符匹配</br> 注3：脱字符 <code>^</code>如果出现在首位则表示匹配不包含其中的任意字符；如果 ^ 出现在字符串中间就仅作为普通字符匹配</td>
+</tr>
+<tr>
+<td><center>{M,N}</center></td>
+<td>M 和 N 均为非负整数，其中 M &lt;= N，表示前边的 RE 匹配 M ~ N 次</br> 注1：{M,} 表示至少匹配 M 次</br> 注2：{,N} 等价于 {0,N} </br>注3：{N} 表示需要匹配 N 次</td>
+</tr>
+<tr>
+<td><center>*</center></td>
+<td>匹配前面的子表达式零次或多次，等价于 {0,}</td>
+</tr>
+<tr>
+<td><center>+</center></td>
+<td>匹配前面的子表达式一次或多次，等价于 {1,}</td>
+</tr>
+<tr>
+<td><center>?</center></td>
+<td>匹配前面的子表达式零次或一次，等价于 {0,1}</td>
+</tr>
+<tr>
+<td><center>*?, +?, ??</center></td>
+<td>默认情况下<code>*</code>、<code>+</code>和 <code>?</code>的匹配模式是贪婪模式（即会尽可能多地匹配符合规则的字符串）；<code>*?</code>、<code>+?</code> 和<code>??</code> 表示启用对应的非贪婪模式。</br> <em>举个栗子：对于字符串 &quot;FishCCC&quot;，正则表达式 FishC+ 会匹配整个字符串，而 FishC+? 则匹配 &quot;FishC&quot;。</em></td>
+</tr>
+<tr>
+<td><center>{M,N}?</center></td>
+<td>同上，启用非贪婪模式，即只匹配 M 次</td>
+</tr>
+<tr>
+<td><center>(...)</center></td>
+<td>匹配圆括号中的正则表达式，或者指定一个子组的开始和结束位置 注：子组的内容可以在匹配之后被 \数字 再次引用 <em>举个栗子： (\w+) \1 可以字符串 &quot;FishC FishC.com&quot; 中的 &quot;FishC FishC&quot;（注意有空格）</em></td>
+</tr>
+<tr>
+<td><center>(?...)</center></td>
+<td><code>(?</code>开头的表示为正则表达式的扩展语法（下边这些是 Python 支持的所有扩展语法）</td>
+</tr>
+<tr>
+<td><center>(?aiLmsux)</center></td>
+<td>1. <code>(?</code>后可以紧跟着 'a'，'i'，'L'，'m'，'s'，'u'，'x' 中的一个或多个字符，只能在正则表达式的开头使用 2. 每一个字符对应一种匹配标志：<code>re-A</code>（只匹配 ASCII 字符），<code>re-I</code>（忽略大小写），<code>re-L</code>（区域设置），<code>re-M</code>（多行模式）, <code>re-S</code>（. 匹配任何符号），<code>re-X</code>（详细表达式），包含这些字符将会影响整个正则表达式的规则 3. 当你不想通过 <code>re.compile()</code> 设置正则表达式标志，这种方法就非常有用啦 </br>注意：由于 <code>(?x)</code>决定正则表达式如何被解析，所以它应该总是被放在最前边（最多允许前边有空白符）。如果 <code>(?x)</code> 的前边是非空白字符，那么 <code>(?x)</code> 就发挥不了作用了。</td>
+</tr>
+<tr>
+<td><center>(?:...)</center></td>
+<td>非捕获组，即该子组匹配的字符串无法从后边获取</td>
+</tr>
+<tr>
+<td><center>(?P&lt;name&gt;...)</center></td>
+<td>命名组，通过组的名字（name）即可访问到子组匹配的字符串</td>
+</tr>
+<tr>
+<td><center>(?P=name)</center></td>
+<td>反向引用一个命名组，它匹配指定命名组匹配的任何内容</td>
+</tr>
+<tr>
+<td><center>(?#...)</center></td>
+<td>注释，括号中的内容将被忽略</td>
+</tr>
+<tr>
+<td><center>(?=...)</center></td>
+<td>前向肯定断言。如果当前包含的正则表达式（这里以 ... 表示）在当前位置成功匹配，则代表成功，否则失败。一旦该部分正则表达式被匹配引擎尝试过，就不会继续进行匹配了；剩下的模式在此断言开始的地方继续尝试。 <em>举个栗子：love(?=FishC) 只匹配后边紧跟着 &quot;FishC&quot; 的字符串 &quot;love&quot;</em></td>
+</tr>
+<tr>
+<td><center>(?!...)</center></td>
+<td>前向否定断言。这跟前向肯定断言相反（不匹配则表示成功，匹配表示失败）。 <em>举个栗子：FishC(?!.com) 只匹配后边不是 &quot;.com&quot; 的字符串 &quot;FishC&quot;</em></td>
+</tr>
+<tr>
+<td><center>(?&lt;=...)</center></td>
+<td>后向肯定断言。跟前向肯定断言一样，只是方向相反。 <em>举个栗子：(?&lt;=love)FishC 只匹配前边紧跟着 &quot;love&quot; 的字符串 &quot;FishC&quot;</em></td>
+</tr>
+<tr>
+<td><center>(?&lt;!...)</center></td>
+<td>后向否定断言。跟前向肯定断言一样，只是方向相反。 <em>举个栗子：(?&lt;!FishC).com 只匹配前边不是 &quot;FishC&quot; 的字符串 &quot;.com&quot;</em></td>
+</tr>
+<tr>
+<td><center>(?(id/name)yes-pattern|no-pattern)</center></td>
+<td>1. 如果子组的序号或名字存在的话，则尝试 yes-pattern 匹配模式；否则尝试 no-pattern 匹配模式 2. no-pattern 是可选的 </br>举个栗子：(&lt;)?(\w+@\w+(?:.\w+)+)(?(1)&gt;|$) 是一个匹配邮件格式的正则表达式，可以匹配&lt;user@fishc.com&gt; 和 'user@fishc.com'，但是不会匹配 '&lt;user@fishc.com' 或 'user@fishc.com&gt;'</td>
+</tr>
+<tr>
+<td><center>\</center></td>
+<td>下边列举了由字符 '' 和另一个字符组成的特殊含义。注意，'' + 元字符的组合可以解除元字符的特殊功能</td>
+</tr>
+<tr>
+<td><center>\序号</center></td>
+<td>1. 引用序号对应的子组所匹配的字符串，子组的序号从 1 开始计算</br> 2. 如果序号是以 0 开头，或者 3 个数字的长度。那么不会被用于引用对应的子组，而是用于匹配八进制数字所表示的 ASCII 码值对应的字符 </br>举个栗子：<code>.+) \1</code>会匹配 &quot;FishC FishC&quot; 或 &quot;55 55&quot;，但不会匹配 &quot;FishCFishC&quot;（注意，因为子组后边还有一个空格）</td>
+</tr>
+<tr>
+<td><center>\A</center></td>
+<td>匹配输入字符串的开始位置</td>
+</tr>
+<tr>
+<td><center>\Z</center></td>
+<td>匹配输入字符串的结束位置</td>
+</tr>
+<tr>
+<td><center>\b</center></td>
+<td>零宽断言，匹配一个单词边界，单词被定义为 Unidcode 的字母数字或下横线字符 <em>举个栗子：\bFishC\b 会匹配字符串 &quot;love FishC&quot;、FishC.&quot; 或 &quot;(FishC)&quot;</em></td>
+</tr>
+<tr>
+<td><center>\B</center></td>
+<td>零宽断言，匹配非单词边界，其实就是与 <code>\b</code>相反 <em>举个栗子：py\B 会匹配字符串 &quot;python&quot;、&quot;py3&quot; 或 &quot;py2&quot;，但不会匹配 &quot;py &quot;、&quot;py.&quot; 或 &quot;py!&quot;</em></td>
+</tr>
+<tr>
+<td><center>\d</center></td>
+<td>1. 对于 Unicode（str 类型）模式：匹配任何一个数字，包括 [0-9] 和其他数字字符；如果开启了 re.ASCII 标志，就只匹配 [0-9] </br>2. 对于 8 位（bytes 类型）模式：匹配 [0-9] 中任何一个数字</td>
+</tr>
+<tr>
+<td><center>\D</center></td>
+<td>匹配任何非 Unicode 的数字，其实就是与 \d 相反；如果开启了 re.ASCII 标志，则相当于匹配 [^0-9]</td>
+</tr>
+<tr>
+<td><center>\s</center></td>
+<td>1. 对于 Unicode（str 类型）模式：匹配 Unicode 中的空白字符（包括 [ \t\n\r\f\v] 以及其他空白字符）；如果开启了 re.ASCII 标志，就只匹配 [ \t\n\r\f\v] </br>2. 对于 8 位（bytes 类型）模式：匹配 ASCII 中定义的空白字符，即 [ \t\n\r\f\v]</td>
+</tr>
+<tr>
+<td><center>\S</center></td>
+<td>匹配任何非 Unicode 中的空白字符，其实就是与 \s 相反；如果开启了 re.ASCII 标志，则相当于匹配 [^ \t\n\r\f\v]</td>
+</tr>
+<tr>
+<td><center>\w</center></td>
+<td>1. 对于 Unicode（str 类型）模式：匹配任何 Unicode 的单词字符，基本上所有语言的字符都可以匹配，当然也包括数字和下横线；如果开启了 re.ASCII 标志，就只匹配 [a-zA-Z0-9_] 2. 对于 8 位（bytes 类型）模式：匹配 ASCII 中定义的字母数字，即 [a-zA-Z0-9_]</td>
+</tr>
+<tr>
+<td><center>\W</center></td>
+<td>匹配任何非 Unicode 的单词字符，其实就是与 \w 相反；如果开启了 re.ASCII 标志，则相当于 [^a-zA-Z0-9_]</td>
+</tr>
+<tr>
+<td><center>转义符号</center></td>
+<td>正则表达式还支持大部分 Python 字符串的转义符号：\a，\b，\f，\n，\r，\t，\u，\U，\v，\x，\</br> 注1：\b 通常用于匹配一个单词边界，只有在字符类中才表示“退格” </br>注2：\u 和 \U 只有在 Unicode 模式下才会被识别 </br>注3：八进制转义（\数字）是有限制的，如果第一个数字是 0，或者如果有 3 个八进制数字，那么就被认为是八进制数；其他情况则被认为是子组引用；至于字符串，八进制转义总是最多只能是 3 个数字的长度</td>
+</tr>
+</tbody>
+</table>
+<p><em><strong>To Be Continued</strong></em></p>
+<blockquote>
+<p><strong>正则表达式特殊符号及用法表</strong>  转载于《零基础入门学习Python》小甲鱼 编著<br>
+其他内容来源于互联网和博主积累</p>
+</blockquote>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Python 字符串操作笔记]]></title>
+        <id>https://a1ando.github.io/VaprSYn2k/</id>
+        <link href="https://a1ando.github.io/VaprSYn2k/">
+        </link>
+        <updated>2020-11-14T15:44:23.000Z</updated>
+        <summary type="html"><![CDATA[<p>对python3.x中字符串的操作进行积累，不定时更新</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>对python3.x中字符串的操作进行积累，不定时更新</p>
+<!-- more -->
+<h2 id="1-替换">1 替换</h2>
+<p>替换常用函数为<code>str.replace()</code>，示例如下：</p>
+<pre><code class="language-python">&gt;&gt;&gt; a = 'a w e s o m e P y t h o n'
+&gt;&gt;&gt; a.replace(' ', '') # 注意这里是用空值替代了空格
+'awesomePython'
+&gt;&gt;&gt; a.replace(' ', '', 2) # 后面的参数指定替代次数，默认为-1，即全部代替
+'awe s o m e P y t h o n '
+</code></pre>
+<p>拓展——其他替代操作</p>
+<ul>
+<li><code>re.sub()</code></li>
+</ul>
+<pre><code class="language-Python">&gt;&gt;&gt; import re
+&gt;&gt;&gt; s = 'hello\tworld\t\n'
+&gt;&gt;&gt; re.sub('\s+', ' ', s)
+'hello world '
+</code></pre>
+<ul>
+<li><code>str.translate()</code></li>
+</ul>
+<pre><code class="language-python">&gt;&gt;&gt; s = 'python\fis\tawesome\r\n'
+&gt;&gt;&gt; remap = {
+    ord('\f'): ' ',
+    ord('\t'): ' ',
+    ord('\r'): None,   # ord()返回对象的ASCII值或者Unicode值
+}
+&gt;&gt;&gt; s.translate(remap)
+'python is awesome\n'
+</code></pre>
+<p>一般情况下，<code>str.replace()</code>是较快的，其它方法会比较慢，但是对于复杂的重映射，使用<code>translate()</code>方法更加易读而且快捷。当然，碰到具体的问题可以做性能对比，选择最优的函数。</p>
+<h2 id="2-对齐">2 对齐</h2>
+<h3 id="21-just-ljust-rjust">2.1 <code>just()</code>、<code>ljust()</code>、<code>rjust()</code></h3>
+<pre><code class="language-python">&gt;&gt;&gt; text = 'Hello World'
+&gt;&gt;&gt; text.ljust(20)
+'Hello World         '
+&gt;&gt;&gt; text.rjust(20)
+'         Hello World'
+&gt;&gt;&gt; text.center(20)
+'    Hello World     '
+</code></pre>
+<p>这些方法都可以接受<mark>一个</mark>可选的填充字符，两个以上报错。例如：</p>
+<pre><code class="language-python">&gt;&gt;&gt; text.rjust(20, '=')
+'=========Hello World'
+</code></pre>
+<h3 id="22-format">2.2 <code>format()</code></h3>
+<p><code>format()</code>函数也可以对齐，<code>&lt;</code> 、<code>&gt;</code>、<code>^</code>分别代表左对齐、右对齐和居中。</p>
+<pre><code class="language-python">&gt;&gt;&gt; format(text, '&gt;20')
+'         Hello World'
+&gt;&gt;&gt; format(text, '=&lt;20')
+'Hello World========='
+&gt;&gt;&gt; format(text, '*^20')
+'****Hello World*****'
+</code></pre>
+<p>而且，当格式化多个值时，这些格式化代码也可以用在<code>format()</code>方法中。</p>
+<pre><code class="language-python">&gt;&gt;&gt; '空格{:&gt;10s}空格{:&gt;10s}空格'.format('hello', 'A1ando')
+'空格     hello空格    A1ando空格'
+</code></pre>
+<p><code>format()</code>不仅可以用于字符串，它能作用于任何值</p>
+<pre><code class="language-python">&gt;&gt;&gt; X = 1.2356
+&gt;&gt;&gt; format(X, '&gt;10.2f')
+'      1.24'
+&gt;&gt;&gt; format(X, '^10.2f')
+'   1.24   '
+</code></pre>
+<h2 id="3-格式化">3 格式化</h2>
+<h3 id="31">3.1 <code>%</code></h3>
+<pre><code class="language-python">&gt;&gt;&gt; X = '%s是我的学生'
+&gt;&gt;&gt; X % '张三'
+'张三是我的学生'
+</code></pre>
+<h3 id="32-format">3.2 <code>format()</code></h3>
+<pre><code class="language-python">&gt;&gt;&gt; X = '{}是我的学生'
+&gt;&gt;&gt; X.format('张三')
+'张三是我的学生'
+&gt;&gt;&gt; s = '{name} has {n} messages'
+&gt;&gt;&gt; s.format(n=4，name='A1ando')
+'A1ando has 4 messages'
+
+&gt;&gt;&gt; s = '{} has {} messages'
+&gt;&gt;&gt; s.format('Alando', 4)
+'Alando has 4 messages'
+
+&gt;&gt;&gt; s = '{0} has {1} messages'
+&gt;&gt;&gt; s.format('Alando', 4)
+'Alando has 4 messages'        # 字符串中{x}的标记x是为了在格式化的时候方便指定内容
+</code></pre>
+<h3 id="32-f-string">3.2 <code>f-string</code></h3>
+<p>f-string用大括号 <code>{}</code> 可以填入表达式或调用函数，Python会求出其结果并填入返回的字符串内：</p>
+<pre><code class="language-python">&gt;&gt;&gt; X = '张三'
+&gt;&gt;&gt; f'{X}是我的学生'
+'张三是我的学生'
+&gt;&gt;&gt; f'A total number of {24 * 8 + 4}'
+'A total number of 196'
+
+&gt;&gt;&gt; f'complex number {(2 + 2j) / (2 - 3j)}'
+'Comelex number (结果)'
+
+&gt;&gt;&gt; name = 'ERIC'
+&gt;&gt;&gt;f'My name is {name.lower()}'
+'My name is eric'
+
+&gt;&gt;&gt; import math
+&gt;&gt;&gt; f'The answer is {math.log(math.pi)}'
+'The answer is 1.1447298858494002'
+</code></pre>
+<h3 id="34-上述三者对比">3.4 上述三者对比</h3>
+<p><code>%</code>更多适用于大段预先准备好的文本中某些地方的替代，例如下面一段文本：</p>
+<pre><code>亲爱的%s：
+	您本次预定的%s号列车即将在%s发车，请您准时抵达！
+	...
+</code></pre>
+<p>这份文本在读取到参数<code>f</code>中，那么很容易用<code>f % ('王先生'， 'G105', '2020-11-6 13：00')</code>来格式化，批量用不同的信息取代。</p>
+<p><code>format()</code>和<code>f-string</code>更加适合在代码中使用，特别是后者使得程序更易读。</p>
+<h2 id="4-拼接">4 拼接</h2>
+<p>要合并的对象在一个可迭代对象中，使用<code>join()</code>是最快的方法</p>
+<pre><code class="language-python">&gt;&gt;&gt; parts = ['Is', 'Beijing', 'Not', 'a', 'Capital']
+&gt;&gt;&gt; ' '.join(parts)
+'Is Beijing Not a Capital'
+&gt;&gt;&gt; ','.join(parts)
+'Is,Beijing,Not,a,Capital'
+&gt;&gt;&gt; ''.join(parts)
+'IsBeijingNotaCapital'
+&gt;&gt;&gt; data = ['Lee', 26, 178, 20000]
+&gt;&gt;&gt; ', '.join(str(i) for i in data)
+'Lee, 26, 178, 20000'
+</code></pre>
+<p>简单少量字符串拼接使用<code>+</code>即可</p>
+<pre><code class="language-Python">&gt;&gt;&gt; a = 'I Lova'
+&gt;&gt;&gt; b = 'China'
+&gt;&gt;&gt; c = 'Money'
+&gt;&gt;&gt; a + b
+'I Love China'
+&gt;&gt;&gt; a + c
+'I Love Money'
+</code></pre>
+<p><strong>3 格式化</strong>中的内容也可以看作是字符串的拼接。</p>
+<p><code>print()</code>语句中有参数<code>sep=</code>，使用这个参数能有效的进行打印的拼接</p>
+<pre><code class="language-Python">&gt;&gt;&gt; a = 'Lee'
+&gt;&gt;&gt; b = 'Cheel'
+&gt;&gt;&gt; c = 'wood'
+&gt;&gt;&gt; print(a, b, c, sep=':')
+Lee:Cheel:wood
+</code></pre>
+<p>有如下的问题，我要将不断收集到的片段信息保存到文本中，但是片段信息有时候是长度很小的字符串，有时候长度很大，考虑将片段积累到一定的长度后，再一次性写入，重复这一操作，最终将信息全部保存，代码如下：</p>
+<pre><code class="language-Python">def combine(src, maxsize):
+    parts = []
+    size = 0
+    for part in src:
+        parts.append(part)
+        size += len(part)
+        if size &gt; maxsize:
+            yield ''.join(parts)
+            parts = []
+            size = 0
+	yield ''.join(parts) # 当src中所有的片段累积长度仍旧小于指定的最大长度时，返回拼接后的src。
+    
+f = open(filename, 'w', encoding= 'utf8')    
+for part in combine(sample(), 32768):
+    f.write(part)
+f.close()
+</code></pre>
+<p><em><strong>To Be Continued…</strong></em></p>
+<p><strong>【外链】</strong><a href="https://blog.csdn.net/weixin_44747933/article/details/89062640">有趣的编程原理图解</a></p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[【药剂学】溶出曲线作图]]></title>
+        <id>https://a1ando.github.io/4S-bYhLyn/</id>
+        <link href="https://a1ando.github.io/4S-bYhLyn/">
+        </link>
+        <updated>2020-07-20T15:11:13.000Z</updated>
+        <summary type="html"><![CDATA[<p>自用，方便快速制作溶出曲线，适用速释制剂。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>自用，方便快速制作溶出曲线，适用速释制剂。</p>
+<!-- more -->
+<h3 id="version-10">Version 1.0</h3>
+<pre><code class="language-python"># -*- coding: utf-8 -*-
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
+
+fig_title = '*************'#自定义图的标题
+line_width = 1.5#自定义折线宽度
+colors = ['blue', 'red', 'green']#选择折线颜色
+labels = ['0.1mol/L盐酸溶液', 'pH4.5醋酸盐缓冲液', 'pH6.8磷酸盐缓冲液']#折线的标签，与图例对应
+markers = ['o', '^', 's']#区分折线
+plt.figure(figsize=(8, 5), dpi=120)#改变图像的长宽和dpi
+plt.title(fig_title, size=16)#size可调，下同
+plt.xlabel('时间(min)', size=14)
+plt.ylabel('累积溶出百分率(%)', size=14)
+
+#x轴
+x = [0, 5, 10, 15, 20, 30, 60]
+#0.1mol/L盐酸溶液的溶出数据
+y1 = [0, 49, 87, 92, 94, 95, 96]
+#pH4.5醋酸盐缓冲液的溶出数据
+y2 = [0, 55, 84, 91, 94, 95, 96]
+#pH6.8磷酸盐缓冲液的溶出数据
+y3 = [0, 42, 79, 88, 91, 93, 95]
+y = [y1, y2, y3]
+
+#给5min和10min的点标记溶出量
+def note(x, y):
+    txt = [str(each) for each in y]
+    for i in range(len(x)):
+        if i == 1 or i == 2:
+            plt.annotate(txt[i], xy=(x[i], y[i]), xytext=(x[i] + 2, y[i] - 3.2 * i))
+        else:
+            pass
+
+#可选，在y=85的位置画出一条点线
+#plt.plot(x, [85] * 7, linewidth=1.0, linestyle='-.', color='orange')
+for i in range(len(y)):
+    plt.plot(x, y[i], color=colors[i], linewidth=line_width, label=labels[i])
+    plt.scatter(x, y[i], color=colors[i], linewidth=line_width, marker=markers[i])
+    note(x, y[i])
+#y轴刻度，增加85，方便观察15min时的溶出量是否超过85%
+plt.yticks([0, 20, 40, 60, 80, 85, 100])
+#plt.xticks(x)
+
+#网格透明度为0.5，可调范围0~1
+plt.grid(alpha=0.5, linestyle='--')
+
+#显示图例
+plt.legend()
+
+#展示作图，方便再次调整保存
+plt.show()
+</code></pre>
+<h3 id="version-20">Version 2.0</h3>
+<pre><code class="language-python">#-*- coding:utf-8 -*-
+'''
+======================================================
+2020-07-21
+1、将汇总图拆分成四个子图，前三个分别与参比进行对比，最后一个汇总
+2、标记子图数据
+======================================================
+后续计划
+1、在子图空白处内嵌表格
+2、模块化重新整理代码
+======================================================
+'''
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
+
+batch_NO = '***'#设置批号
+x = [0, 5, 10, 15, 20, 30, 60]
+#参比数据，此处随机
+y_refer = [[0, 30, 70, 90, 96, 18, 100],
+           [0, 30, 70, 90, 96, 98, 100],
+           [0, 30, 70, 90, 96, 98, 100]]
+# 0.1mol/L盐酸溶液的溶出数据
+y1 = [0, 49, 87, 92, 94, 95, 96]
+# pH4.5醋酸盐缓冲液的溶出数据
+y2 = [0, 55, 84, 91, 94, 95, 96]
+#pH6.8磷酸盐缓冲液的溶出数据
+y3 = [0, 42, 79, 88, 91, 93, 95]
+y = [y1, y2, y3]
+colors = ['g', 'r', 'b']
+labels = ['0.1mol/L盐酸溶液', 'pH4.5醋酸盐缓冲液', 'pH6.8磷酸盐缓冲液', batch_NO + '批溶出汇总']
+types = ['go-', 'r^-', 'bs-', 'c*-']
+
+def init_plot(ax):
+    ax.set_xlabel('时间(min)', fontsize=12)
+    ax.set_ylabel('累计溶出百分率(%)', fontsize=12)
+    ax.grid(alpha=0.5, linestyle='--')
+    ax.axis([0, 62, 0, 105])
+
+def custome_fig():
+    fig.suptitle(batch_NO + '批溶出曲线汇总（n=？)', fontsize=20)
+
+def note(axss, x, y):
+    txt = [str(each) for each in y]
+    for i in range(1, len(x)):
+        axss.annotate(txt[i], xy=(x[i], y[i]), xytext=(x[i] - 3.5, y[i] - 10), \
+                      arrowprops =dict(arrowstyle='-&gt;'))
+
+def note_refer(axss, x, y):
+    txt = [str(each) for each in y]
+    for i in range(1, len(x)):
+        axss.annotate(txt[i], xy=(x[i], y[i]), xytext=(x[i] + 0.1, y[i] + 0.1))
+
+fig, axs = plt.subplots(2, 2,  constrained_layout=True)
+custome_fig()
+axss= axs.flatten()
+
+for ax in axss:
+    init_plot(ax)
+    
+for i in range(3):
+    axss[i].plot(x, y[i], types[i], label=labels[i])
+    axss[i].plot(x, y_refer[i], types[3], label='参比')
+    axss[i].legend(loc='lower right')
+    note(axss[i], x, y[i])
+    note_refer(axss[i], x, y_refer[i])
+    
+for j in range(len(y)):
+    axss[3].plot(x, y[j], types[j], label=labels[j])
+axss[3].legend(loc='lower right')
+
+
+plt.show()
+</code></pre>
+<h3 id="version-30">Version 3.0</h3>
+<pre><code class="language-python">#-*- coding:utf-8 -*-
+import matplotlib.pyplot as plt
+'''
+======================================================
+2020-07-21
+1、将汇总图拆分成四个子图，前三个分别与参比进行对比，最后一个汇总
+2、标记子图数据
+======================================================
+2020-07-22
+1、在子图空白处内嵌表格，标记可省略
+2、子图4显示数据集中的位置
+3、优化图例大小，画布大小
+======================================================
+后续计划
+1、模块化重新整理代码，原始数据结构优化
+2、将原始数据归档保存至csv文件或者数据库，方便调用
+2、图形界面，更方便数据输入
+======================================================
+'''
+
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
+
+batch_NO = '******'
+x = [0, 5, 10, 15, 20, 30, 60]
+y_refer = [[0, 44, 84, 96, 99, 101, 101],
+           [0, 35, 75, 90, 96, 99, 102],
+           [0, 31, 71, 86, 93, 97, 99]]
+# 0.1mol/L盐酸溶液的溶出数据
+y1 = [0, 49, 87, 92, 94, 95, 96]
+# pH4.5醋酸盐缓冲液的溶出数据
+y2 = [0, 55, 84, 91, 94, 95, 96]
+# pH6.8磷酸盐缓冲液的溶出数据
+y3 = [0, 42, 79, 88, 91, 93, 95]
+y = [y1, y2, y3]
+colors = ['g', 'r', 'b']
+labels = ['0.1mol/L盐酸溶液', 'pH4.5醋酸盐缓冲液', 'pH6.8磷酸盐缓冲液', batch_NO + '批溶出汇总']
+types = ['go-', 'r^-', 'bs-', 'c*-']
+
+
+table_y_vals =[[49, 87, 92, 94, 95, 96],
+               [55, 84, 91, 94, 95, 96],
+               [42, 79, 88, 91, 93, 95]]
+table_refer_vals = [[44, 84, 96, 99, 101, 101],
+                    [35, 75, 90, 96, 99, 102],
+                    [31, 71, 86, 93, 97, 99]]
+
+
+def init_plot(ax):
+    ax.set_xlabel('时间(min)', fontsize=12)
+    ax.set_ylabel('累积溶出百分率(%)', fontsize=12)
+    ax.grid(alpha=0.5, linestyle='--')
+    ax.axis([0, 62, 0, 105])
+
+def custome_fig():
+    fig.suptitle(batch_NO + '批包衣片溶出曲线汇总（n=6)', fontsize=20)
+
+def note(axss, x, y):
+    txt = [str(each) for each in y]
+    for i in range(1, len(x)):
+        axss.annotate(txt[i], xy=(x[i], y[i]), xytext=(x[i] - 3.5, y[i] - 10), arrowprops =dict(arrowstyle='-&gt;'))
+
+def note_refer(axss, x, y):
+    txt = [str(each) for each in y]
+    for i in range(1, len(x)):
+        axss.annotate(txt[i], xy=(x[i], y[i]), xytext=(x[i] + 0.1, y[i] + 0.1))
+
+fig, axs = plt.subplots(2, 2,  constrained_layout=True, figsize=(9, 6), dpi=120)
+custome_fig()
+axss = axs.flatten()
+
+for ax in axss:
+    init_plot(ax)
+for i in range(3):
+    axss[i].plot(x, y[i], types[i], label=labels[i])
+    axss[i].plot(x, y_refer[i], types[3], label='参比')
+    axss[i].legend(loc='lower right')#, fontsize='x-large')
+    #legend.get_title().set_fontsize(fontsize=30)
+    the_table = axss[i].table(cellText=[table_y_vals[i], table_refer_vals[i]],
+                              colWidths=[0.09]*6,
+                              rowLabels=[batch_NO, '参比'],
+                              colLabels=['5min', '10min', '15min', \
+                                         '20min', '30min', '60min'],
+                              colLoc='center',
+                              rowLoc='center',
+                              rowColours=['#999999', 'c'],
+                              cellLoc='center',
+                              loc='center right')
+    the_table.auto_set_font_size(False)
+    the_table.set_fontsize(11)
+    the_table.scale(1.1, 1.1)
+    #note(axss[i], x, y[i])
+    #note_refer(axss[i], x, y_refer[i])
+
+axss[3].axis([0, 35, 25, 100])
+for j in range(len(y)):
+    axss[3].plot(x, y[j], types[j], label=labels[j])
+#axss[3].set_title(labels[3])
+axss[3].legend(loc='lower right')#, fontsize='x-large')
+
+
+plt.show()
+</code></pre>
+<h3 id="version-31">Version 3.1</h3>
+<pre><code class="language-python"># -*- coding:utf-8 -*-
+import matplotlib.pyplot as plt
+import copy
+'''
+======================================================
+2020-07-21
+1、将汇总图拆分成四个子图，前三个分别与参比进行对比，最后一个汇总
+2、标记子图数据
+======================================================
+2020-07-22
+1、在子图空白处内嵌表格，标记可省略
+2、子图4显示数据集中的位置
+3、优化图例大小，画布大小
+======================================================
+2020-07-24
+1、原始数据结构优化
+======================================================
+后续计划
+1、将原始数据归档保存至csv文件或者数据库，方便调用
+2、图形界面，更方便数据输入
+======================================================
+'''
+
+def add_zero(a_list):
+    for i in a_list:
+        if isinstance(i, list):
+            i.insert(0, 0)
+        else:
+            print(a_list, '错误')
+    return a_list
+
+
+def init_plot(ax):
+    ax.set_xlabel('时间(min)', fontsize=12)
+    ax.set_ylabel('累积溶出百分率(%)', fontsize=12)
+    ax.grid(alpha=0.5, linestyle='--')
+    ax.axis([0, 62, 0, 105])
+
+
+def custom_fig():
+    fig.suptitle(batch_NO + '批包衣片溶出曲线汇总（n=6)', fontsize=20)
+
+
+def note(axes, x_axis, y_axis):
+    txt = [str(each) for each in y_axis]
+    for i in range(1, len(x)):
+        axes.annotate(txt[i], xy=(x_axis[i], y_axis[i]),
+                      xytext=(x_axis[i] - 3.5, y_axis[i] - 10),
+                      arrowprops=dict(arrowstyle='-&gt;'))
+
+
+def note_refer(axes, x_axis, y_axis):
+    txt = [str(each) for each in y_axis]
+    for i in range(1, len(x)):
+        axes.annotate(txt[i], xy=(x_axis[i], y_axis[i]),
+                      xytext=(x_axis[i] + 0.1, y_axis[i] + 0.1))
+
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
+
+batch_NO = '20200714-1'
+# batch_NO溶出数据，[0]为'0.1mol/L盐酸溶液'，[1]为'pH4.5醋酸盐缓冲液'，[2]为'pH6.8磷酸盐缓冲液'
+table_y_vals = [[49, 87, 92, 94, 95, 96],
+                [55, 84, 91, 94, 95, 96],
+                [42, 79, 88, 91, 93, 95]]
+# 参比溶出数据，[0]为'0.1mol/L盐酸溶液'，[1]为'pH4.5醋酸盐缓冲液'，[2]为'pH6.8磷酸盐缓冲液'
+table_refer_vals = [[44, 84, 96, 99, 101, 101],
+                    [35, 75, 90, 96, 99, 102],
+                    [31, 71, 86, 93, 97, 99]]
+
+# 数据处理与参数设定
+x = [0, 5, 10, 15, 20, 30, 60]
+y_refer = add_zero(copy.deepcopy(table_refer_vals))
+y1, y2, y3 = y = add_zero(copy.deepcopy(table_y_vals))
+colors = ['g', 'r', 'b']
+labels = ['0.1mol/L盐酸溶液', 'pH4.5醋酸盐缓冲液', 'pH6.8磷酸盐缓冲液', batch_NO + '批溶出汇总']
+types = ['go-', 'r^-', 'bs-', 'c*-']
+
+# 开始绘图
+fig, axs = plt.subplots(2, 2, constrained_layout=True, figsize=(9, 6), dpi=120)
+custom_fig()
+axss = axs.flatten()
+
+for ax in axss:
+    init_plot(ax)
+for i in range(3):
+    axss[i].plot(x, y[i], types[i], label=labels[i])
+    axss[i].plot(x, y_refer[i], types[3], label='参比')
+    axss[i].legend(loc='lower right')  # , fontsize='x-large')
+    # legend.get_title().set_fontsize(fontsize=30)
+    the_table = axss[i].table(cellText=[table_y_vals[i], table_refer_vals[i]],
+                              colWidths=[0.09] * 6,
+                              rowLabels=[batch_NO, '参比'],
+                              colLabels=['5min', '10min', '15min', '20min', '30min', '60min'],
+                              colLoc='center',
+                              rowLoc='center',
+                              rowColours=['#999999', 'c'],
+                              cellLoc='center',
+                              loc='center right')
+    the_table.auto_set_font_size(False)
+    the_table.set_fontsize(9)
+    the_table.scale(1.1, 1.1)
+    # note(axss[i], x, y[i])
+    # note_refer(axss[i], x, y_refer[i])
+
+axss[3].axis([0, 32, 35, 100])
+for j in range(len(y)):
+    axss[3].plot(x, y[j], types[j], label=labels[j])
+# axss[3].set_title(labels[3])
+axss[3].legend(loc='lower right')  # , fontsize='x-large'
+
+plt.show()
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[辅料的关键质量属性研究与控制]]></title>
+        <id>https://a1ando.github.io/XcnRl2jy4/</id>
+        <link href="https://a1ando.github.io/XcnRl2jy4/">
+        </link>
+        <updated>2020-06-21T10:30:43.000Z</updated>
+        <summary type="html"><![CDATA[<p><strong>转载</strong> 梅希 <strong>药事纵横</strong></p>
+<p>药用辅料是指生产药品时处方中使用到的赋形剂和添加剂，是除了活性成分（原料药，API）或前体药物以外，在安全性方面已进行了合理评估的物质。辅料除了赋形、充当载体、提高稳定性外，还具有增溶、助溶、调节药物释放等重要功能，是可能会影响到制剂的质量、安全性和有效性的重要成分。</p>
+]]></summary>
+        <content type="html"><![CDATA[<p><strong>转载</strong> 梅希 <strong>药事纵横</strong></p>
+<p>药用辅料是指生产药品时处方中使用到的赋形剂和添加剂，是除了活性成分（原料药，API）或前体药物以外，在安全性方面已进行了合理评估的物质。辅料除了赋形、充当载体、提高稳定性外，还具有增溶、助溶、调节药物释放等重要功能，是可能会影响到制剂的质量、安全性和有效性的重要成分。</p>
+<!-- more -->
+<p>在制剂制备过程中，药用辅料选用是否得当会影响制剂的安全性、有效性、稳定性、经济性和顺应性。<br>
+本文通过围绕辅料的关键质量属性，通过几个案例展示了辅料功能和性质对制剂研发的影响，并总结了辅料质量属性的分析技术，旨在提示广大研发人员重视辅料的质量研究与控制</p>
+<hr>
+<h2 id="1-什么是辅料的关键质量属性cqa"><strong>1、什么是辅料的关键质量属性（CQA）？</strong></h2>
+<p>辅料可以有多种分类方式，如下图可见，包括有机辅料、无机辅料，每类别根据结构不同都可以分为简单（结构简单、明确）和复杂（结构复杂、不明确）的，根据来源不同，分为合成、半合成、天然的辅料。</p>
+<figure data-type="image" tabindex="1"><img src="https://a1ando.github.io/post-images/1605267524026.jpg" alt="" loading="lazy"></figure>
+<p>关键质量属性是物理的、化学的、生物的、微生物的属性和特性，这个属性应被限定在一个适当的限度、范围内，以确保产品的质量。</p>
+<p>对于原料药而言，可能包括质量标准范围内的，如有关物质、含量、异构体、水分、干燥失重、残留溶剂、溶解性等，还有可能包括与制剂的溶出度、生物利用度、稳定性、工艺等相关的晶型、粒度、晶癖。</p>
+<p>而对于辅料而言，一般包括杂质、粒度、粘度、pH、分子量分布等特性。与原料不同，辅料的关键质量属性有时很难发现，由于受到API（性质、剂量大小）、处方（组成、比例）、生产工艺等的影响，某种属性（例如粘度）对于某药物可能是关键的，而对另一种药物，或另一个不同剂量的药物而言，可能就不是关键的，也就是说辅料属性的发现和确定是否关键与很多因素有关，如果在研发初期研究不充分、没有发现、没有总结，可能就不会发现辅料的关键质量属性，即使一次通过生物等效性试验（BE），也难保后期放大、持续生产、临床安全性、有效性方面不出问题。</p>
+<p>因此，在研究过程中，我们还应该把更多的精力放在系统研究辅料特性上，细致思考和观察，把辅料的CQAs与成品的处方组成、生产工艺和CQAs结合起来，找到其中的因果关系。</p>
+<h2 id="2-辅料性质差异从何而来"><strong>2、辅料性质差异从何而来？</strong></h2>
+<p>不难理解，与API一样，辅料的理化性质、机械性质的差异也是由其生产工艺决定的，不同的生产工艺（或参数）会生产出不同性质的辅料。如果辅料生产的起始物料、生产工艺（如全合成、半合成、发酵）、生产设备、生产规模、工艺参数等发生了变化，那么辅料中也就可能产生新的工艺杂质，也可能导致某些理化性质发生变化，甚至引起机械性质、粉体学性质的变化，例如不同pH、不同粒度等。</p>
+<p>一般来讲，对于通过发酵、降解工艺生产的辅料，其发生质量差异的可能性比全合成的辅料要大。因为前两者的生产工艺有时较复杂，工艺参数控制往往较宽，而后者如果起始物料不变，工艺参数调整的空间较小。</p>
+<p>在原辅料相容性过程中，在不同厂家辅料的筛选中，在稳定性的放样考察中，要特别注意研究和总结不同性质的辅料对有关物质、含量、溶出等CQA的影响，然后去分析辅料的哪些属性会引起这种结果，是水分、pH、杂质、过氧化物、粒度还是其他。对于特殊工艺制备的制剂（如缓释制剂），特殊BCS分类的药物（如BCS II或IV类）来讲，辅料的特性研究更加关键。研发中，要关注不同供应商来源的同种辅料、相同厂家的不同批次辅料之间的差异，尽可能多了解辅料的生产工艺。</p>
+<blockquote>
+<p>BCS分类:<br>
+class1 高溶高渗<br>
+class2 低溶高渗<br>
+class3 高溶低渗<br>
+class4 低溶高渗</p>
+</blockquote>
+<p>辅料CQA能否发现，与人员水平有关、工艺有关、还与所选择检测方法和技术有关。</p>
+<h2 id="3-影响制剂cqa的辅料特性"><strong>3、影响制剂CQA的辅料特性</strong></h2>
+<p>辅料对制剂成品质量属性、生产工艺的影响是通过辅料的功能、辅料的质量以及辅料与辅料、辅料与药物的相互作用来实现的。辅料的性质可分为物理性质和化学性质两大类。在物理性质中，常见的性质例如粉体学性质（流动性、可压性、粒度分布、形态等）；化学性质中，常见的性质例如化学结构式、取代度、杂质等。目前有非常多的关于辅料特性差异的报道，作者仅仅列出几个案例来说明问题，其他代表性案例，读者可自己可通过文献查找，不再一一列举。</p>
+<h3 id="案例1不同粉体学性质辅料对直压工艺产品质量的影响"><strong>案例1：不同粉体学性质辅料对直压工艺产品质量的影响</strong></h3>
+<p>Parteck®M200、M100 直压甘露醇和直压甘露醇C、D 这四种不同型号的甘露醇与主药相容性好，但不同型号的甘露醇之间还是存在一些差异[1]。</p>
+<center>表1. 粉体学测定结果</center>
+<figure data-type="image" tabindex="2"><img src="https://a1ando.github.io/post-images/1605267562703.jpg" alt="" loading="lazy"></figure>
+<p>一般来说，卡式指数在25%以下时流动性较好，卡式指数越小，粉体的填充性越好，相反卡氏指数较大，可压性好。通过表1可以看出除Parteck® M100 直压甘露醇外的3 种型号甘露醇及其混合药物后测得的卡式指数均小于20%，而Parteck® M100 直压甘露醇及其混粉的卡式指数也不大于25%，在填充性和可压性方面各有所长。</p>
+<p>然而，在不同溶出介质中的溶出曲线表明，在水中，含Parteck® M200、M100直压甘露醇的模型药物吲达帕胺的溶出结果优于直压甘露醇C、D，而在其他3 种溶出介质中的4条溶出曲线趋势一致，说明药物与Parteck® M200、M100 直压甘露醇混合压片后的溶出度具有一定优势。</p>
+<figure data-type="image" tabindex="3"><img src="https://a1ando.github.io/post-images/1605267585161.jpg" alt="" loading="lazy"></figure>
+<center>图1. 片剂在水（A）、0.1mol/L 盐酸（B）、pH 4.5 醋酸缓冲液（C）和pH 6.8 磷酸缓冲液（D）中的溶出曲线</center>
+<p>通过这个案例可知，相同种类辅料不同型号、不同粉体学性质的辅料在特定处方、工艺条件下，对制剂成品的关键质量属性影响不同，因此对于粉末直压工艺而言辅料的粉体学指标是一个关键因素。</p>
+<h3 id="案例2不同粒度甘露醇对成品含量的影响"><strong>案例2：不同粒度甘露醇对成品含量的影响</strong></h3>
+<p>采用粒径较大的物料甘露醇200SD和氯雷他定混合粉压片，发现压片过程中的硬度、厚度、重量差异等均符合要求，但压片结束时片子的含量偏高，是什么原因呢？</p>
+<p>原来200SD在混合粉中先从料斗中流出，而粒径较小的主药粘在料斗壁上，最后流出，导致压片结束时饲料器及片子含量偏高。当换用粒度较小的甘露醇100SD 时，由于100SD的粒径和主药差异不大，因此并没有出现分层的现象，示意图如图2 所示[2]。</p>
+<figure data-type="image" tabindex="4"><img src="https://a1ando.github.io/post-images/1605267606857.jpg" alt="" loading="lazy"></figure>
+<center>图2. 粉体在压片过程中料斗内的流变学</center>
+<p>作者在对压片过程中模孔和片子的数据进行分析时发现，甘露醇100SD和200SD混合粉体表现出了相同的现象：模孔内的含量均比同时间的片子含量偏高。产生这种现象的原因是什么呢？作者认为，对于直接压片工艺，粉末并未经过制粒过程，粉末分子间仅有微弱的范德华力连接，很容易受到外界的影响，上冲在压模孔里的物料时，造成了粒径较小的主药飞散出模孔而使最终片子的含量相对偏低。</p>
+<p>通过这个案例可知，相同种类不同粒度的辅料，在特定药物、处方、工艺条件下，对成品的生产工艺和关键质量属性的影响不同，因此“粒度”是一个关键因素，在一个选定的制剂工艺条件下，需要对辅料提出“特殊要求”。</p>
+<h3 id="案例3不同来源sls对制剂工艺的影响"><strong>案例3：不同来源SLS对制剂工艺的影响</strong></h3>
+<p>在设计难溶性药物口服固体制剂时，制剂人员面临着极大的挑战，特别是高剂量药物。提高溶出度和/或溶出速率是提高难溶解性药物口服生物利用度的必要条件。目前有许多方法可以提高溶出，如采用酸化剂或碱化剂调节pH值、络合物、固体分散体、制备成无定型药物、减小粒度以及使用表面活性剂等。表面活性剂可以在提高药物溶解度方便发挥一种或多种作用，如改善药物的润湿性和溶解性，并减少或防止药物沉淀。从生产角度而言，使用表面活性剂提高溶解度比其他非常规剂型（如固体分散体）更适合生产与降低成本。</p>
+<p>十二烷基硫酸钠（SLS）是一种很常用的阴离子型表面活性剂，具有很强的增溶能力，用在固体口服制剂中提高难溶性药物的溶解度。除了上述作用之外，SLS还会影响口服固体制剂的生产过程。不同来源的SLS含有不同含量的表面活性杂质，其中大部分是同源的醇类，其表面活性在SLS的两个数量级以上（见表2）。这些已知或未知的杂质可能有助于表面活性剂的功能，并改变SLS在溶出介质或固体口服制剂中提高药物溶解性时的增溶作用。不同来源的SLS可能具有不同的物理性质，如熔点、粒度、微观形态，这可能影响药物的溶出和生产过程[3]。</p>
+<center>表2. 不同来源的SLS检测结果</center>
+<figure data-type="image" tabindex="5"><img src="https://a1ando.github.io/post-images/1605267628850.jpg" alt="" loading="lazy"></figure>
+<p>不同来源的SLS的扫描电镜图如下所示，Spectrum公司SLS大多数颗粒具有更少的球形形状，长度大于25μm，一些聚集体大于150μm。Cognis公司的SLS大多数颗粒是较大、多孔、不规则的聚集体。Sigma公司的SLS颗粒呈薄片状，表面有层状结构，颗粒的直径约为2μm至数百微米。三个公司的SLS粒度分布测定结果差异很大。</p>
+<figure data-type="image" tabindex="6"><img src="https://a1ando.github.io/post-images/1605267646316.jpg" alt="" loading="lazy"></figure>
+<center>图3. Spectrum公司的SLS扫描电镜图</center>
+<figure data-type="image" tabindex="7"><img src="https://a1ando.github.io/post-images/1605267679606.jpg" alt="" loading="lazy"></figure>
+<center>图4. Cognis公司的SLS扫描电镜图</center>
+<figure data-type="image" tabindex="8"><img src="https://a1ando.github.io/post-images/1605267701451.jpg" alt="" loading="lazy"></figure>
+<center>图5. Sigma公司的超纯SLS扫描电镜图</center>
+<figure data-type="image" tabindex="9"><img src="https://a1ando.github.io/post-images/1605267752659.jpg" alt="" loading="lazy"></figure>
+<center>图6. Spectrum、Cognis、Sigma公司的SLS粒度分布图（未微粉、微粉）</center>
+<p>在湿法制粒中，不同来源和不同粒度的SLS所需的水量和制粒时间也不同。含有SpectrumSLS的辅料制粒时的用水量比其他两个来源的SLS少。因此在固定制粒时间时制粒所需的水量与SLS的表面张力的顺序相同：Spectrum &lt; Cognis &lt; Sigma（超纯）。</p>
+<center>表3. 不同来源和不同粒度的SLS所需的水量和制粒时间</center>
+<figure data-type="image" tabindex="10"><img src="https://a1ando.github.io/post-images/1605267774641.jpg" alt="" loading="lazy"></figure>
+<p>根据上述案例可见，在进行含有SLS的制剂处方工艺研究中有必要研究不同来源SLS的性质、粒度分布等性质，必要时制定辅料的内控标准。</p>
+<h3 id="案例4辅料化学结构式与功能的相关性"><strong>案例4：辅料化学结构式与功能的相关性</strong></h3>
+<p>某药物的片芯辅料之一为all-rac-α-Tocopherol，中文名为α-生育酚，结构式中含有酚羟基，作为抗氧剂使用。但有时研发人员误将其认为是维生素E而使用了中国药典中的原料药维生素E作为抗氧剂使用，从结构式中可见由于药典中的维生素E为α-生育酚的醋酸酯，因此已没有抗氧化作用了。所以，使用辅料时应注意辅料的化学结构和其作用的关系。</p>
+<figure data-type="image" tabindex="11"><img src="https://a1ando.github.io/post-images/1605267815134.jpg" alt="" loading="lazy"></figure>
+<figure data-type="image" tabindex="12"><img src="https://a1ando.github.io/post-images/1605267838670.jpg" alt="" loading="lazy"></figure>
+<h3 id="案例5辅料中的活性杂质"><strong>案例5：辅料中的活性杂质</strong></h3>
+<p>辅料中也有很多类活性杂质，这类杂质可以与API发生反应。以过氧化物为例，聚山梨酯、聚乙烯吡咯烷酮（PVP）、聚乙二醇（PEG）、羟丙基纤维素（HPC）等是含有过氧化物的辅料，如果根据文献报道或研究发现API容易被氧化，由于不同的API对氧化的敏感性可能不同，那么在处方筛选阶段就需要设计相应的实验来研究论证这些辅料中不同过氧化物含量对制剂中杂质的影响，根据数据结果来确定该辅料中过氧化物需要控制在什么限度才能保证制剂的质量和稳定性，保证杂质在整个货架期内的增加趋势不高于原研制剂。</p>
+<p>辅料中的过氧化物包括过氧化氢(H2O2)，氢过氧化物(ROOH)，有机过氧化物(ROOR’)等。过氧化物常用于聚合物的生产，在纯化过程中很难被完全去除，此外，在聚合物的降解时也可能会产生过氧化物。不同的生产条件、纯化工艺、不同存放时间、不同生产厂家、以及相同厂家不同批次之间，过氧化物的含量都可能存在较大差异。</p>
+<p>过氧化物可以通过以下三种途径与API发生氧化反应：亲核加成、亲电取代、金属存在下的自由基反应。如果发现API中的氧化杂质增加，且处方中包括上述辅料应进行由针对性的研究和控制。</p>
+<p>醛类、有机酸（如甲酸、乙酸等）、还原糖、元素杂质等辅料中活性杂质的控制综见美国基因泰克公司的综述[4]。</p>
+<h2 id="4-辅料cqa的分析技术"><strong>4、辅料CQA的分析技术</strong></h2>
+<p>从上述案例中可见，辅料变异有时会显著影响自身的性质和功能，也会对制剂的关键质量属性和工艺的选择重要有影响。我国仿制药一致性评价申报资料中的P.4部分就要求对辅料的控制进行研究和说明。因此，在仿制药研发中，不但制剂人员应该对辅料有深入了解，分析人员也应该掌握评价辅料特性的分析方法，以促进对QbD药品研发先进理念的理解。</p>
+<p>从上文分析可知，辅料差异的来源包括：source to source，site to site，batch to batch， supplier to supplier，year to year等。为了表达这些差异，我们可以从“微观”和“宏观”两个角度进行分析。</p>
+<p>辅料的微观属性分析技术。X射线粉末衍射法、DCS法、TGA法、NIR法、固态核磁SSNMR、KFT或干燥失重法、pH测定法等方法常用来对辅料的微观属性进行分析，如结构式、晶型或无定型、熔点、水分、酸碱度等。其中，SSNMR法区分辅料化学结构、NIR法在区分辅料批间差异方面具有重要应用。</p>
+<p>辅料的宏观属性分析技术。辅料粉体学特性的测定方法，如流动性、堆密度、压缩指数、粒度分布、扫描电镜（SEM）等指标都有相关的检测技术，详见USP&lt;1174&gt; POWDER FLOW粉体流动性等其他检测技术章节。</p>
+<p>当辅料的来源、生产工艺、稳定性等发生变化时，采用上述分析技术进行综合分析，往往可以发现辅料性质的差异，当然辅料的检测方法也是需要进行方法学验证的。</p>
+<h2 id="5-辅料质控相关的指导原则和质量标准"><strong>5、辅料质控相关的指导原则和质量标准</strong></h2>
+<p>ICHM7和ICHQ3D大家经常会用于成品的质量控制，如原料药或制剂。但是，对辅料的质量控制而言，也有特殊规定。例如ICHM7规定对已上市药品中使用的辅料、香精、着色剂等可不进行基因毒性杂质的有关研究，然而对于新辅料而言，ICHM7要求对首次在制剂中使用到的辅料进行安全风险评估，因此这类辅料需要关注遗传毒性杂质的控制。ICHQ3D用于原料药和制剂的金属杂质控制，对于辅料而言，也可能引入金属杂质，如Pt、Pd等，ICHQ3D同样适用于辅料的金属杂质研究，常用的方法为ICP-MS。</p>
+<p>此外，EP、USP-NF、JP等国外药典标准也经常收载ChP没有收载的辅料标准，在对辅料标准进行分析研究时，应考察将其汇总对比，详细标准检测方法和限度，根据对制剂产品关键质量属性的影响，制定相应的控制指标和控制方法、限度标准，从物料的源头上来确保产品质量的稳定性和均一性。</p>
+<h2 id="6-qbd研发理念与辅料控制"><strong>6、QbD研发理念与辅料控制</strong></h2>
+<p>QbD理念通过ICHQ8、Q9、Q10指导原则进行了表达，QbD强调对制剂处方、工艺的理解和控制，其中重点概念包括目标产品质量概括QTPP、关键质量属性CQA、关键物料属性CMA、设计空间DS等。因此应该对原料、辅料、包材、工艺、设备、分析方法等进行充分的研究与理解，对今后可能出现变异进行提前判断。</p>
+<p>对于辅料的选择，是药品研发中一个很重要的环节，辅料的选择影响生物利用度（BA）或生物等效性（BE）、药物稳定性以及生产重复性。有时，辅料选择时往往需要综合考虑很多问题，如为了提高生物利用度、生物等效性而牺牲一定程度的药物稳定性，这时就需要选择合理的包材或制定合理的控制策略来实现和保证。</p>
+<p>把辅料的CQAs与制剂成品的QTPP联系起来，只要制定了辅料控制策略就能够保证产品符合要求，而为了完成这种“过程中的控制策略”，首先需要结合国内外药典标准对辅料的基本检测指标进行分析；其次需要结合辅料的厂家报告和自检结果分析存在的差异；第三需要结合制剂处方工艺研究寻找辅料的CQAs并制定适用于特定药物的内控标准。</p>
+<p>辅料虽然无药理活性，但却是制剂的重要组成部分，缺少辅料制剂的性能是无法实现的。药品中使用到的辅料的性质往往是发生变化的，这些变化往往来源于生产工艺的变化。辅料的某种特性的变化会影响到制剂的性能和功能，应充分理解了这些变化对制剂关键质量属性的影响。多种辅料的分析检测技术为评估这些变化提供了方法，应注意积累和总结。此外，辅料的包装、贮藏条件对辅料质量的影响，例如光、氧、湿、热等因素都会促进辅料中过氧化物的形成，聚维酮等辅料使用中需注意包装的合理性和完整性。</p>
+<p>可以预见，随着我国仿制药一致性评价工作的深入开展，人们对辅料关键质量属性的研究和控制将会得到前所未有的重视。</p>
+<h2 id="参考文献"><strong>参考文献</strong></h2>
+<p>[1] 白璐,王博,吴疆,任晓文.不同型号甘露醇对吲达帕胺直接压片的影响研究[J].现代药物与临床,2014,29（4）：338-341<br>
+[2] 赵存婕.探讨不同粒度的甘露醇对于直接压片产品的影响[J].黑龙江医药,2014,27(3):559-562<br>
+[3] Dongmei Qiang, Jocelyn A.Gunn, Leon Schultz &amp; Z. Jane Li.Evaluation of the impact of sodium lauryl sulfate source variability on solid oral dosage form development [J]. Drug Development and Industrial Pharmacy, 2010; 36(12): 1486–1496.<br>
+[4] Kelly Zhang, Jackson D.Pellett, Ajit S. Narang, Y. John Wang, Yonghua Taylor Zhang. Reactive impurities in large and small molecule pharmaceutical excipients-A review [J]. Trends in Analytical Chemistry,101 (2018) 34-42.</p>
+]]></content>
+    </entry>
+</feed>
