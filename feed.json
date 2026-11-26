@@ -1,0 +1,28 @@
+{
+    "version": "https://jsonfeed.org/version/1",
+    "title": "a1ando",
+    "description": "",
+    "home_page_url": "https://A1ando.github.io/A1ando.github.io",
+    "feed_url": "https://A1ando.github.io/A1ando.github.io/feed.json",
+    "user_comment": "",
+    "author": {
+        "name": "a1ando"
+    },
+    "items": [
+        {
+            "id": "https://A1ando.github.io/A1ando.github.io/just-for-test/",
+            "url": "https://A1ando.github.io/A1ando.github.io/just-for-test/",
+            "title": "just for test",
+            "summary": "just for test",
+            "content_html": "<p>just for test</p>",
+            "image": "https://A1ando.github.io/A1ando.github.io/media/posts/1/Duck-ai-image-2026-11-11-10-06.jpeg",
+            "author": {
+                "name": "a1ando"
+            },
+            "tags": [
+            ],
+            "date_published": "2026-11-26T11:55:22+08:00",
+            "date_modified": "2026-11-26T11:55:22+08:00"
+        }
+    ]
+}
