@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="https://A1ando.github.io/A1ando.github.io/sitemap.xsl"?>
+<?xml-stylesheet type="text/xsl" href="https://a1ando.github.io/sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 <url>
-<loc>https://A1ando.github.io/A1ando.github.io/</loc>
+<loc>https://a1ando.github.io/</loc>
 </url>
 <url>
-<loc>https://A1ando.github.io/A1ando.github.io/just-for-test/</loc>
+<loc>https://a1ando.github.io/just-for-test/</loc>
 <lastmod>2026-11-26T11:55:22+08:00</lastmod>
 <image:image>
-<image:loc>https://A1ando.github.io/A1ando.github.io/media/posts/1/Duck-ai-image-2026-11-11-10-06.jpeg</image:loc>
+<image:loc>https://a1ando.github.io/media/posts/1/Duck-ai-image-2026-11-11-10-06.jpeg</image:loc>
 <image:title><![CDATA[]]></image:title>
 </image:image>
 </url>

@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
     <title>a1ando</title>
-    <link href="https://A1ando.github.io/A1ando.github.io/feed.xml" rel="self" />
-    <link href="https://A1ando.github.io/A1ando.github.io" />
+    <link href="https://a1ando.github.io/feed.xml" rel="self" />
+    <link href="https://a1ando.github.io" />
     <updated>2026-11-26T11:55:22+08:00</updated>
     <author>
         <name>a1ando</name>
     </author>
-    <id>https://A1ando.github.io/A1ando.github.io</id>
+    <id>https://a1ando.github.io</id>
 
     <entry>
         <title>just for test</title>
         <author>
             <name>a1ando</name>
         </author>
-        <link href="https://A1ando.github.io/A1ando.github.io/just-for-test/"/>
-        <id>https://A1ando.github.io/A1ando.github.io/just-for-test/</id>
-        <media:content url="https://A1ando.github.io/A1ando.github.io/media/posts/1/Duck-ai-image-2026-11-11-10-06.jpeg" medium="image" />
+        <link href="https://a1ando.github.io/just-for-test/"/>
+        <id>https://a1ando.github.io/just-for-test/</id>
+        <media:content url="https://a1ando.github.io/media/posts/1/Duck-ai-image-2026-11-11-10-06.jpeg" medium="image" />
 
         <updated>2026-11-26T11:55:22+08:00</updated>
             <summary type="html">
                 <![CDATA[
-                        <img src="https://A1ando.github.io/A1ando.github.io/media/posts/1/Duck-ai-image-2026-11-11-10-06.jpeg" alt="" />
+                        <img src="https://a1ando.github.io/media/posts/1/Duck-ai-image-2026-11-11-10-06.jpeg" alt="" />
                     just for test
                 ]]>
             </summary>
         <content type="html">
             <![CDATA[
-                    <p><img src="https://A1ando.github.io/A1ando.github.io/media/posts/1/Duck-ai-image-2026-11-11-10-06.jpeg" class="type:primaryImage" alt="" /></p>
+                    <p><img src="https://a1ando.github.io/media/posts/1/Duck-ai-image-2026-11-11-10-06.jpeg" class="type:primaryImage" alt="" /></p>
                 <p>just for test</p>
             ]]>
         </content>

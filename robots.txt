@@ -1,3 +1,3 @@
 User-agent: *
 Disallow:
-Sitemap: https://A1ando.github.io/A1ando.github.io/sitemap.xml
+Sitemap: https://a1ando.github.io/sitemap.xml
